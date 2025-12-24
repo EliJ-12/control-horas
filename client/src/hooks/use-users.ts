@@ -14,31 +14,43 @@ export function useUsers() {
   });
 }
 
-export function useCreateUser() {
+export function useDeleteUser() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: InsertUser) => {
-      const res = await fetch(api.users.create.path, {
-        method: "POST",
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${api.users.list.path}/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Error al eliminar usuario");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
+      toast({ title: "Usuario eliminado" });
+    },
+  });
+}
+
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<InsertUser> & { id: number }) => {
+      const res = await fetch(`${api.users.list.path}/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         credentials: "include",
       });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create user");
-      }
-      return api.users.create.responses[201].parse(await res.json());
+      if (!res.ok) throw new Error("Error al actualizar usuario");
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.users.list.path] });
-      toast({ title: "Employee Created", description: "New user account has been set up." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Usuario actualizado" });
     },
   });
 }

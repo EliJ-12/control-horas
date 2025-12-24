@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { format } from "date-fns";
-import { Plus } from "lucide-react";
+import { Plus, FileUp } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function EmployeeAbsences() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export default function EmployeeAbsences() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [isPartial, setIsPartial] = useState(false);
+  const [partialHours, setPartialHours] = useState("");
 
   const { data: absences } = useAbsences({ userId: user?.id });
   const createAbsence = useCreateAbsence();
@@ -36,66 +39,70 @@ export default function EmployeeAbsences() {
     await createAbsence.mutateAsync({
       userId: user.id,
       startDate,
-      endDate,
+      endDate: isPartial ? startDate : endDate,
       reason,
-      status: "pending"
+      status: "pending",
+      isPartial,
+      partialHours: isPartial ? Number(partialHours) * 60 : null,
+      fileUrl: null // Placeholder for file upload logic
     });
     setOpen(false);
-    setStartDate("");
-    setEndDate("");
-    setReason("");
   };
 
   return (
     <Layout>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Mis Solicitudes de Ausencia</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Ausencias</h1>
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="mr-2 h-4 w-4" /> Solicitar Ausencia
+                <Plus className="mr-2 h-4 w-4" /> Nueva Ausencia
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nueva Solicitud</DialogTitle>
-                <DialogDescription>Solicita permiso o tiempo libre.</DialogDescription>
+                <DialogTitle>Registrar Ausencia</DialogTitle>
+                <DialogDescription>Indica el motivo y duración de tu ausencia.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+                <div className="flex items-center space-x-2 pb-2 border-b">
+                  <Switch id="partial" checked={isPartial} onCheckedChange={setIsPartial} />
+                  <Label htmlFor="partial">Ausencia Parcial (Unas horas)</Label>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Fecha Inicio</Label>
-                    <Input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={e => setStartDate(e.target.value)}
-                      required 
-                    />
+                    <Label>{isPartial ? 'Fecha' : 'Fecha Inicio'}</Label>
+                    <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Fecha Fin</Label>
-                    <Input 
-                      type="date" 
-                      value={endDate}
-                      onChange={e => setEndDate(e.target.value)}
-                      required
-                    />
+                  {!isPartial ? (
+                    <div className="space-y-2">
+                      <Label>Fecha Fin</Label>
+                      <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Horas de Ausencia</Label>
+                      <Input type="number" placeholder="Ej: 4" value={partialHours} onChange={e => setPartialHours(e.target.value)} required />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Adjuntar Documento (Opcional)</Label>
+                  <div className="border-2 border-dashed rounded-md p-4 flex flex-col items-center justify-center text-muted-foreground">
+                    <FileUp className="h-6 w-6 mb-2" />
+                    <span className="text-xs">Haz clic o arrastra un archivo</span>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label>Motivo</Label>
-                  <Textarea 
-                    value={reason}
-                    onChange={e => setReason(e.target.value)}
-                    placeholder="Ej: Cita médica, Vacaciones..."
-                    required
-                  />
+                  <Textarea value={reason} onChange={e => setReason(e.target.value)} required />
                 </div>
-                <Button type="submit" className="w-full" disabled={createAbsence.isPending}>
-                  {createAbsence.isPending ? "Enviando..." : "Enviar Solicitud"}
-                </Button>
+                <Button type="submit" className="w-full">Enviar Registro</Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -106,28 +113,24 @@ export default function EmployeeAbsences() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b">
                 <tr className="text-left">
-                  <th className="p-4 font-medium text-muted-foreground">Fecha Inicio</th>
-                  <th className="p-4 font-medium text-muted-foreground">Fecha Fin</th>
-                  <th className="p-4 font-medium text-muted-foreground">Motivo</th>
-                  <th className="p-4 font-medium text-muted-foreground">Estado</th>
+                  <th className="p-4">Fechas</th>
+                  <th className="p-4">Tipo</th>
+                  <th className="p-4">Motivo</th>
+                  <th className="p-4">Estado</th>
                 </tr>
               </thead>
               <tbody>
                 {absences?.map((absence) => (
-                  <tr key={absence.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="p-4">{format(new Date(absence.startDate), 'MMM d, yyyy')}</td>
-                    <td className="p-4">{format(new Date(absence.endDate), 'MMM d, yyyy')}</td>
+                  <tr key={absence.id} className="border-b last:border-0">
+                    <td className="p-4">
+                      {format(new Date(absence.startDate), 'dd/MM/yyyy')} 
+                      {absence.startDate !== absence.endDate && ` - ${format(new Date(absence.endDate), 'dd/MM/yyyy')}`}
+                    </td>
+                    <td className="p-4">{absence.isPartial ? `${absence.partialHours ? absence.partialHours/60 : 0}h parcial` : 'Jornada completa'}</td>
                     <td className="p-4 max-w-xs truncate">{absence.reason}</td>
                     <td className="p-4"><StatusBadge status={absence.status || "pending"} /></td>
                   </tr>
                 ))}
-                {(!absences || absences.length === 0) && (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-muted-foreground">
-                      No hay solicitudes de ausencia.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

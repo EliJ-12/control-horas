@@ -154,18 +154,23 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // Seed Data if needed
-  const users = await storage.getAllUsers();
-  if (users.length === 0) {
-    const adminPassword = await hashPassword("admin123");
-    await storage.createUser({
-      username: "admin",
-      password: adminPassword,
-      fullName: "System Admin",
-      role: "admin"
-    });
-    console.log("Admin user created: admin / admin123");
-  }
+  app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const id = Number(req.params.id);
+    await db.delete(users).where(eq(users.id, id));
+    res.sendStatus(204);
+  });
+
+  app.patch("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const id = Number(req.params.id);
+    const [updated] = await db.update(users).set(req.body).where(eq(users.id, id)).returning();
+    res.json(updated);
+  });
 
   return httpServer;
 }

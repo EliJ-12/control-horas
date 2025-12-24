@@ -114,6 +114,7 @@ export default function AdminEmployees() {
                   <th className="p-4 font-medium text-muted-foreground">Usuario</th>
                   <th className="p-4 font-medium text-muted-foreground">Rol</th>
                   <th className="p-4 font-medium text-muted-foreground">Creado</th>
+                  <th className="p-4 font-medium text-muted-foreground">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,7 +132,11 @@ export default function AdminEmployees() {
                       </span>
                     </td>
                     <td className="p-4 text-muted-foreground">
-                      {user.createdAt ? format(new Date(user.createdAt), 'MMM d, yyyy') : '-'}
+                      {user.createdAt ? format(new Date(user.createdAt), 'dd/MM/yyyy') : '-'}
+                    </td>
+                    <td className="p-4 flex gap-2">
+                       <Button variant="ghost" size="sm" onClick={() => {/* TODO: Implement Edit */}}>Editar</Button>
+                       <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {/* TODO: Implement Delete */}}>Eliminar</Button>
                     </td>
                   </tr>
                 ))}

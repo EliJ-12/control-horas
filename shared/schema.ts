@@ -20,8 +20,8 @@ export const workLogs = pgTable("work_logs", {
   date: date("date").notNull(), // YYYY-MM-DD
   startTime: text("start_time").notNull(), // HH:mm
   endTime: text("end_time").notNull(), // HH:mm
-  totalHours: integer("total_hours").notNull(), // stored in minutes for precision, or could be float
-  status: text("status", { enum: ["pending", "approved", "rejected"] }).default("pending"),
+  totalHours: integer("total_hours").notNull(), // stored in minutes
+  type: text("type", { enum: ["work", "absence"] }).notNull().default("work"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -32,6 +32,9 @@ export const absences = pgTable("absences", {
   endDate: date("end_date").notNull(),
   reason: text("reason").notNull(),
   status: text("status", { enum: ["pending", "approved", "rejected"] }).default("pending"),
+  fileUrl: text("file_url"),
+  isPartial: boolean("is_partial").default(false),
+  partialHours: integer("partial_hours"), // in minutes
   createdAt: timestamp("created_at").defaultNow(),
 });
 

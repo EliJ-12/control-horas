@@ -23,14 +23,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const navItems = isAdmin
     ? [
-        { href: "/admin", label: "Panel", icon: LayoutDashboard },
+        { href: "/admin", label: "Panel / Registros", icon: LayoutDashboard },
         { href: "/admin/employees", label: "Empleados", icon: Users },
-        { href: "/admin/work-logs", label: "Registros de Horas", icon: Briefcase },
         { href: "/admin/absences", label: "Ausencias", icon: CalendarClock },
       ]
     : [
-        { href: "/dashboard", label: "Mi Panel", icon: LayoutDashboard },
-        { href: "/dashboard/history", label: "Mis Horas", icon: FileClock },
+        { href: "/dashboard", label: "Mi Panel / Mis Horas", icon: LayoutDashboard },
         { href: "/dashboard/absences", label: "Ausencias", icon: CalendarClock },
       ];
 
