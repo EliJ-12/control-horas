@@ -168,7 +168,13 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Unauthorized" });
     }
     const id = Number(req.params.id);
-    const [updated] = await db.update(users).set(req.body).where(eq(users.id, id)).returning();
+    const updates = { ...req.body };
+    if (updates.password) {
+      updates.password = await hashPassword(updates.password);
+    } else {
+      delete updates.password;
+    }
+    const [updated] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     res.json(updated);
   });
 
