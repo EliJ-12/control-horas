@@ -2,14 +2,15 @@ import { useWorkLogs, useCreateWorkLog } from "@/hooks/use-work-logs";
 import { useUsers } from "@/hooks/use-users";
 import Layout from "@/components/layout";
 import { StatsCard } from "@/components/stats-card";
-import { Users, Briefcase, Clock, TrendingUp, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Users, Briefcase, Clock, TrendingUp, Plus, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
   const [open, setOpen] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Form State for manual registration
   const [regUserId, setRegUserId] = useState("");
@@ -37,6 +39,12 @@ export default function AdminDashboard() {
   const [regStartTime, setRegStartTime] = useState("09:00");
   const [regEndTime, setRegEndTime] = useState("18:00");
   const [regType, setRegType] = useState("work");
+
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   const totalEmployees = users?.filter(u => u.role === 'employee').length || 0;
   const filteredLogs = logs?.filter(log => {
@@ -46,14 +54,13 @@ export default function AdminDashboard() {
     return true;
   }) || [];
 
-  const totalHours = filteredLogs.reduce((acc, log) => acc + log.totalHours, 0);
-  const employees = users?.filter(u => u.role === 'employee') || [];
+  const handlePrev = () => setCurrentDate(prev => subMonths(prev, 1));
+  const handleNext = () => setCurrentDate(prev => addMonths(prev, 1));
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regUserId) return;
     
-    // Simple duration calc for demo (HH:mm)
     const [sH, sM] = regStartTime.split(':').map(Number);
     const [eH, eM] = regEndTime.split(':').map(Number);
     const diff = (eH * 60 + eM) - (sH * 60 + sM);
@@ -77,10 +84,9 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold tracking-tight">Panel de Administración</h1>
             <p className="text-muted-foreground mt-1">Gestión de registros y visualización</p>
           </div>
-          
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="shadow-lg">
                 <Plus className="mr-2 h-4 w-4" /> Registro Manual
               </Button>
             </DialogTrigger>
@@ -95,7 +101,7 @@ export default function AdminDashboard() {
                   <Select value={regUserId} onValueChange={setRegUserId}>
                     <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
-                      {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.fullName}</SelectItem>)}
+                      {users?.filter(u => u.role === 'employee').map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.fullName}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -139,19 +145,34 @@ export default function AdminDashboard() {
 
           <TabsContent value="calendar" className="mt-4">
             <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>{format(currentDate, 'MMMM yyyy')}</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={handlePrev}><ChevronLeft className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={handleNext}><ChevronRight className="h-4 w-4" /></Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentDate(new Date())}>Hoy</Button>
+                </div>
+              </CardHeader>
               <CardContent className="p-6">
                  <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden border">
-                    {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
+                    {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
                       <div key={d} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
                     ))}
-                    {eachDayOfInterval({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }).map(day => {
+                    {days.map(day => {
                       const dayLogs = filteredLogs.filter(l => isSameDay(new Date(l.date), day));
                       const isFichado = dayLogs.some(l => l.type === 'work');
                       const isAusencia = dayLogs.some(l => l.type === 'absence');
+                      const isCurrentMonth = day.getMonth() === currentDate.getMonth();
                       
                       return (
-                        <div key={day.toString()} className="bg-background min-h-[80px] p-2 border-t">
-                          <span className="text-xs text-muted-foreground">{format(day, 'd')}</span>
+                        <div key={day.toString()} className={cn(
+                          "bg-background min-h-[80px] p-2 border-t",
+                          !isCurrentMonth && "bg-muted/30"
+                        )}>
+                          <span className={cn(
+                            "text-xs",
+                            !isCurrentMonth ? "text-muted-foreground/50" : "text-muted-foreground"
+                          )}>{format(day, 'd')}</span>
                           <div className="mt-1 space-y-1">
                             {isFichado && <div className="h-1.5 w-full bg-emerald-500 rounded-full" title="Trabajado" />}
                             {isAusencia && <div className="h-1.5 w-full bg-blue-500 rounded-full" title="Ausencia" />}
@@ -175,7 +196,7 @@ export default function AdminDashboard() {
                       <SelectTrigger><SelectValue placeholder="Empleado" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="0">Todos</SelectItem>
-                        {employees.map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.fullName}</SelectItem>)}
+                        {users?.filter(u => u.role === 'employee').map(e => <SelectItem key={e.id} value={e.id.toString()}>{e.fullName}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />

@@ -2,10 +2,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWorkLogs, useCreateWorkLog } from "@/hooks/use-work-logs";
 import { useAbsences } from "@/hooks/use-absences";
 import Layout from "@/components/layout";
-import { Clock, Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Clock, Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -17,24 +17,32 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  
   const [view, setView] = useState<"month" | "week">("month");
   const today = new Date();
   const [currentDate, setCurrentDate] = useState(today);
+
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+
+  const displayInterval = view === "month" 
+    ? { start: calendarStart, end: calendarEnd }
+    : { start: weekStart, end: weekEnd };
 
   const { data: logs } = useWorkLogs({ 
     userId: user?.id, 
-    startDate: format(monthStart, 'yyyy-MM-dd'), 
-    endDate: format(monthEnd, 'yyyy-MM-dd') 
+    startDate: format(displayInterval.start, 'yyyy-MM-dd'), 
+    endDate: format(displayInterval.end, 'yyyy-MM-dd') 
   });
 
   const { data: absences } = useAbsences({ 
@@ -46,7 +54,15 @@ export default function EmployeeDashboard() {
   const [regEndTime, setRegEndTime] = useState("18:00");
   const [regType, setRegType] = useState<"work" | "absence">("work");
 
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const days = eachDayOfInterval(displayInterval);
+
+  const handlePrev = () => {
+    setCurrentDate(prev => view === "month" ? subMonths(prev, 1) : new Date(prev.setDate(prev.getDate() - 7)));
+  };
+
+  const handleNext = () => {
+    setCurrentDate(prev => view === "month" ? addMonths(prev, 1) : new Date(prev.setDate(prev.getDate() + 7)));
+  };
 
   const handleFichar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +135,18 @@ export default function EmployeeDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle>Mi Calendario - {format(currentDate, 'MMMM yyyy')}</CardTitle>
+            <div className="flex items-center gap-4">
+              <CardTitle>Mi Calendario - {format(currentDate, view === 'month' ? 'MMMM yyyy' : "'Semana del' dd 'de' MMMM")}</CardTitle>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrev}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNext}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentDate(today)}>Hoy</Button>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
@@ -141,7 +168,7 @@ export default function EmployeeDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden border">
-              {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
+              {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
                 <div key={d} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
               ))}
               {days.map(day => {
@@ -153,12 +180,13 @@ export default function EmployeeDashboard() {
 
                 return (
                   <div key={day.toString()} className={cn(
-                    "bg-background min-h-[100px] p-2 border-t relative",
-                    !isCurrentMonth && "bg-muted/30"
+                    "bg-background p-2 border-t relative",
+                    view === "month" ? "min-h-[100px]" : "min-h-[200px]",
+                    !isCurrentMonth && view === "month" && "bg-muted/30"
                   )}>
                     <span className={cn(
                       "text-xs",
-                      !isCurrentMonth ? "text-muted-foreground/50" : "text-muted-foreground"
+                      !isCurrentMonth && view === "month" ? "text-muted-foreground/50" : "text-muted-foreground"
                     )}>{format(day, 'd')}</span>
                     <div className="mt-2 space-y-1">
                       {isFichado && (
