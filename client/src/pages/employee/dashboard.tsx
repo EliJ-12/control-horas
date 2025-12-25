@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkLogs, useCreateWorkLog } from "@/hooks/use-work-logs";
+import { useAbsences } from "@/hooks/use-absences";
 import Layout from "@/components/layout";
 import { Clock, Calendar as CalendarIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,11 @@ export default function EmployeeDashboard() {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   
+  const [view, setView] = useState<"month" | "week">("month");
   const today = new Date();
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const [currentDate, setCurrentDate] = useState(today);
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
 
   const { data: logs } = useWorkLogs({ 
     userId: user?.id, 
@@ -33,10 +36,13 @@ export default function EmployeeDashboard() {
     endDate: format(monthEnd, 'yyyy-MM-dd') 
   });
 
+  const { data: absences } = useAbsences({ 
+    userId: user?.id 
+  });
+
   const createLog = useCreateWorkLog();
   const [regStartTime, setRegStartTime] = useState("09:00");
   const [regEndTime, setRegEndTime] = useState("18:00");
-
   const [regType, setRegType] = useState<"work" | "absence">("work");
 
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -111,8 +117,26 @@ export default function EmployeeDashboard() {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Mi Calendario - {format(today, 'MMMM yyyy')}</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle>Mi Calendario - {format(currentDate, 'MMMM yyyy')}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className={cn(view === "month" && "bg-primary text-primary-foreground")}
+                onClick={() => setView("month")}
+              >
+                Mes
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className={cn(view === "week" && "bg-primary text-primary-foreground")}
+                onClick={() => setView("week")}
+              >
+                Semana
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-7 gap-px bg-muted rounded-lg overflow-hidden border">
@@ -121,13 +145,21 @@ export default function EmployeeDashboard() {
               ))}
               {days.map(day => {
                 const dayLog = logs?.find(l => isSameDay(new Date(l.date), day));
+                const dayAbsence = absences?.find(a => isSameDay(new Date(a.startDate), day));
                 const isFichado = dayLog?.type === 'work';
-                const isAusencia = dayLog?.type === 'absence';
+                const isAusencia = dayLog?.type === 'absence' || dayAbsence;
+                const isCurrentMonth = day.getMonth() === currentDate.getMonth();
 
                 return (
-                  <div key={day.toString()} className="bg-background min-h-[100px] p-2 border-t relative">
-                    <span className="text-xs text-muted-foreground">{format(day, 'd')}</span>
-                    <div className="mt-2">
+                  <div key={day.toString()} className={cn(
+                    "bg-background min-h-[100px] p-2 border-t relative",
+                    !isCurrentMonth && "bg-muted/30"
+                  )}>
+                    <span className={cn(
+                      "text-xs",
+                      !isCurrentMonth ? "text-muted-foreground/50" : "text-muted-foreground"
+                    )}>{format(day, 'd')}</span>
+                    <div className="mt-2 space-y-1">
                       {isFichado && (
                         <div className="text-[10px] bg-emerald-100 text-emerald-700 p-1 rounded border border-emerald-200">
                           {dayLog.startTime} - {dayLog.endTime}
@@ -135,7 +167,7 @@ export default function EmployeeDashboard() {
                       )}
                       {isAusencia && (
                         <div className="text-[10px] bg-blue-100 text-blue-700 p-1 rounded border border-blue-200">
-                          Ausencia
+                          {dayAbsence ? (dayAbsence.isPartial ? "Ausencia Parcial" : "Ausencia Total") : "Ausencia"}
                         </div>
                       )}
                     </div>

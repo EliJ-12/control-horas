@@ -1,10 +1,11 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkLogs, useUpdateWorkLog, useDeleteWorkLog } from "@/hooks/use-work-logs";
+import { useAbsences } from "@/hooks/use-absences";
 import Layout from "@/components/layout";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, CalendarClock } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,10 @@ export default function EmployeeWorkHistory() {
     userId: user?.id, 
     startDate: monthStart, 
     endDate: monthEnd 
+  });
+
+  const { data: absences } = useAbsences({ 
+    userId: user?.id 
   });
 
   const updateLog = useUpdateWorkLog();
@@ -46,6 +51,20 @@ export default function EmployeeWorkHistory() {
     setEditingId(null);
   };
 
+  // Combine and sort all events
+  const allEvents = [
+    ...(logs || []).map(l => ({ ...l, eventType: 'log' })),
+    ...(absences || []).map(a => ({ 
+      id: a.id, 
+      date: a.startDate, 
+      startTime: a.isPartial ? "Parcial" : "Completa", 
+      endTime: a.reason,
+      totalHours: a.partialHours || 0,
+      type: 'absence',
+      eventType: 'absence'
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
   return (
     <Layout>
       <div className="space-y-8">
@@ -56,7 +75,7 @@ export default function EmployeeWorkHistory() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Registros del Mes</CardTitle>
+            <CardTitle>Todos los Registros</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border overflow-hidden">
@@ -65,66 +84,74 @@ export default function EmployeeWorkHistory() {
                   <thead className="bg-muted/50 border-b">
                     <tr className="text-left">
                       <th className="p-4">Fecha</th>
-                      <th className="p-4">Entrada</th>
-                      <th className="p-4">Salida</th>
+                      <th className="p-4">Entrada / Info</th>
+                      <th className="p-4">Salida / Motivo</th>
                       <th className="p-4">Duración</th>
                       <th className="p-4">Tipo</th>
                       <th className="p-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {logs && logs.length > 0 ? (
-                      logs.map((log) => (
-                        <tr key={log.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="p-4">{format(new Date(log.date), 'dd/MM/yyyy')}</td>
+                    {allEvents.length > 0 ? (
+                      allEvents.map((event: any) => (
+                        <tr key={`${event.eventType}-${event.id}`} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="p-4">{format(new Date(event.date), 'dd/MM/yyyy')}</td>
                           <td className="p-4">
-                            {editingId === log.id ? (
+                            {editingId === event.id && event.eventType === 'log' ? (
                               <Input 
                                 type="time" 
                                 value={editData.startTime} 
                                 className="h-8 w-24"
                                 onChange={e => setEditData({...editData, startTime: e.target.value})} 
                               />
-                            ) : log.startTime}
+                            ) : event.startTime}
                           </td>
                           <td className="p-4">
-                            {editingId === log.id ? (
+                            {editingId === event.id && event.eventType === 'log' ? (
                               <Input 
                                 type="time" 
                                 value={editData.endTime} 
                                 className="h-8 w-24"
                                 onChange={e => setEditData({...editData, endTime: e.target.value})} 
                               />
-                            ) : log.endTime}
+                            ) : event.endTime}
                           </td>
-                          <td className="p-4 font-medium">{Math.floor(log.totalHours / 60)}h {log.totalHours % 60}m</td>
+                          <td className="p-4 font-medium">
+                            {event.eventType === 'log' || event.type === 'absence' ? 
+                              `${Math.floor(event.totalHours / 60)}h ${event.totalHours % 60}m` : '-'}
+                          </td>
                           <td className="p-4">
                             <span className={cn(
                               "px-2 py-0.5 rounded-full text-[10px] font-medium border",
-                              log.type === 'work' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
+                              event.type === 'work' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
                             )}>
-                              {log.type === 'work' ? 'Trabajo' : 'Ausencia'}
+                              {event.type === 'work' ? 'Trabajo' : 'Ausencia'}
                             </span>
                           </td>
                           <td className="p-4 flex gap-1">
-                            {editingId === log.id ? (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={() => handleSave(log.id)}>
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingId(null)}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(log)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => deleteLog.mutate(log.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
+                            {event.eventType === 'log' && (
+                              editingId === event.id ? (
+                                <>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={() => handleSave(event.id)}>
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingId(null)}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(event)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => deleteLog.mutate(event.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )
+                            )}
+                            {event.eventType === 'absence' && (
+                              <CalendarClock className="h-4 w-4 text-muted-foreground ml-2" />
                             )}
                           </td>
                         </tr>
@@ -132,7 +159,7 @@ export default function EmployeeWorkHistory() {
                     ) : (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                          No hay registros para este mes
+                          No hay registros disponibles
                         </td>
                       </tr>
                     )}

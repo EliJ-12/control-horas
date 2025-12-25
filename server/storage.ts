@@ -14,6 +14,7 @@ export interface IStorage {
   getWorkLogs(userId?: number, startDate?: string, endDate?: string): Promise<(WorkLog & { user: User })[]>;
   getWorkLog(id: number): Promise<WorkLog | undefined>;
   updateWorkLog(id: number, log: Partial<InsertWorkLog>): Promise<WorkLog>;
+  deleteWorkLog(id: number): Promise<void>;
 
   // Absence operations
   createAbsence(absence: InsertAbsence): Promise<Absence>;
@@ -82,6 +83,10 @@ export class DatabaseStorage implements IStorage {
   async updateWorkLog(id: number, updates: Partial<InsertWorkLog>): Promise<WorkLog> {
     const [updated] = await db.update(workLogs).set(updates).where(eq(workLogs.id, id)).returning();
     return updated;
+  }
+
+  async deleteWorkLog(id: number): Promise<void> {
+    await db.delete(workLogs).where(eq(workLogs.id, id));
   }
 
   async createAbsence(absence: InsertAbsence): Promise<Absence> {

@@ -71,3 +71,27 @@ export function useUpdateWorkLog() {
     },
   });
 }
+
+export function useDeleteWorkLog() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.workLogs.update.path, { id }); // Using same path but with DELETE method
+      const res = await fetch(url, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete work log");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.workLogs.list.path] });
+      toast({ title: "Deleted", description: "Work log deleted successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+}

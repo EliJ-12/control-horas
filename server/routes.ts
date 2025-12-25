@@ -6,6 +6,10 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "@shared/schema";
 
+import { db } from "./db";
+import { users, workLogs } from "@shared/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -99,12 +103,28 @@ export async function registerRoutes(
     
     // Only owner (if pending) or admin can update
     const user = req.user as any;
-    if (user.role !== 'admin' && (existing.userId !== user.id || existing.status !== 'pending')) {
+    if (user.role !== 'admin' && existing.userId !== user.id) {
       return res.status(403).json({ message: "Cannot edit this log" });
     }
 
     const updated = await storage.updateWorkLog(id, req.body);
     res.json(updated);
+  });
+
+  app.delete(api.workLogs.update.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: "Unauthorized" });
+    
+    const id = Number(req.params.id);
+    const existing = await storage.getWorkLog(id);
+    if (!existing) return res.status(404).json({ message: "Not found" });
+    
+    const user = req.user as any;
+    if (user.role !== 'admin' && existing.userId !== user.id) {
+      return res.status(403).json({ message: "Cannot delete this log" });
+    }
+
+    await storage.deleteWorkLog(id);
+    res.sendStatus(204);
   });
 
   // === Absences ===
