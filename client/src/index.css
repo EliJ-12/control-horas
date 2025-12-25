@@ -18,7 +18,7 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  --primary: 221 83% 53%; /* Vivid Blue */
+  --primary: 189 100% 35%; /* #0097B2 */
   --primary-foreground: 210 40% 98%;
 
   --secondary: 210 40% 96%;
@@ -35,7 +35,7 @@
 
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 221 83% 53%;
+  --ring: 189 100% 35%;
 
   --radius: 0.75rem;
 }

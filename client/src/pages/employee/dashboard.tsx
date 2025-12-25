@@ -16,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 export default function EmployeeDashboard() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -35,6 +37,8 @@ export default function EmployeeDashboard() {
   const [regStartTime, setRegStartTime] = useState("09:00");
   const [regEndTime, setRegEndTime] = useState("18:00");
 
+  const [regType, setRegType] = useState<"work" | "absence">("work");
+
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   const handleFichar = async (e: React.FormEvent) => {
@@ -51,7 +55,7 @@ export default function EmployeeDashboard() {
       startTime: regStartTime,
       endTime: regEndTime,
       totalHours: diff > 0 ? diff : 480,
-      type: "work"
+      type: regType
     });
     setOpen(false);
   };
@@ -76,6 +80,16 @@ export default function EmployeeDashboard() {
                 <DialogTitle>Registrar Jornada</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleFichar} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Tipo de Registro</Label>
+                  <Select value={regType} onValueChange={(v: any) => setRegType(v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="work">Trabajo</SelectItem>
+                      <SelectItem value="absence">Ausencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="space-y-2">
                   <Label>Fecha</Label>
                   <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
