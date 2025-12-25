@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type WorkLogWithUser } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 import { type InsertWorkLog, type WorkLog } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 

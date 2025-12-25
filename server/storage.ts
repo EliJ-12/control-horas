@@ -113,7 +113,7 @@ export class DatabaseStorage implements IStorage {
 
     const conditions = [];
     if (userId) conditions.push(eq(absences.userId, userId));
-    if (status) conditions.push(eq(absences.status, status));
+    if (status) conditions.push(eq(absences.status, status as any));
 
     if (conditions.length > 0) {
       return await query.where(and(...conditions)).orderBy(absences.startDate) as (Absence & { user: User })[];
