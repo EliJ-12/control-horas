@@ -20,25 +20,33 @@ export async function registerRoutes(
   // Setup Auth
   const { hashPassword } = await setupAuth(app);
 
-  // Initialize Supabase client with multiple possible environment variable names
+  // Initialize Supabase client with comprehensive environment checking
   const supabaseUrl = process.env.SUPABASE_URL || 
                         process.env.NEXT_PUBLIC_SUPABASE_URL || 
                         process.env.VITE_SUPABASE_URL || '';
   
-  // Use service role key for admin operations (bypasses RLS)
+  // Try multiple service key names (most common ones)
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                       process.env.SERVICE_ROLE_KEY ||
                        process.env.SUPABASE_KEY || 
                        process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
   
+  console.log('Environment check:', {
+    supabaseUrl: !!supabaseUrl,
+    supabaseKey: !!supabaseKey,
+    availableEnvVars: Object.keys(process.env).filter(key => 
+      key.toLowerCase().includes('supabase')
+    )
+  });
+  
   if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase environment variables. Available env vars:', {
-      SUPABASE_URL: !!process.env.SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      SUPABASE_KEY: !!process.env.SUPABASE_KEY,
-      NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-    });
+    console.error('Missing Supabase environment variables.');
+    console.error('Required variables:');
+    console.error('- SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL or VITE_SUPABASE_URL');
+    console.error('- SUPABASE_SERVICE_ROLE_KEY or SERVICE_ROLE_KEY or SUPABASE_KEY');
+    console.error('Available Supabase env vars:', Object.keys(process.env).filter(key => 
+      key.toLowerCase().includes('supabase')
+    ));
     throw new Error('Supabase configuration is missing. Please check your environment variables.');
   }
 
