@@ -1,13 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { setupAuth } from "./auth";
-import { api } from "@shared/routes";
+import { storage } from "./storage.js";
+import { setupAuth } from "./auth.js";
+import { api } from "../shared/routes.js";
 import { z } from "zod";
-import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "@shared/schema";
+import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "../shared/schema.js";
 
-import { db } from "./db";
-import { users, workLogs } from "@shared/schema";
+import { db } from "./db.js";
+import { users, workLogs } from "../shared/schema.js";
 import { eq, and, gte, lte } from "drizzle-orm";
 
 export async function registerRoutes(

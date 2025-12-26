@@ -1,5 +1,5 @@
-import { users, workLogs, absences, type User, type InsertUser, type WorkLog, type InsertWorkLog, type Absence, type InsertAbsence } from "@shared/schema";
-import { db } from "./db";
+import { users, workLogs, absences, type User, type InsertUser, type WorkLog, type InsertWorkLog, type Absence, type InsertAbsence } from "../shared/schema.js";
+import { db } from "./db.js";
 import { eq, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
