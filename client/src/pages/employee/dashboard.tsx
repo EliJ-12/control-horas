@@ -188,9 +188,13 @@ export default function EmployeeDashboard() {
                 <div key={d} className="bg-background p-2 text-center text-xs font-medium text-muted-foreground">{d}</div>
               ))}
               {days.map(day => {
-                // Only show work logs in calendar, not absence records
+                // Filter work logs to exclude 'absence' type from work logs table
                 const dayWorkLog = logs?.find(l => isSameDay(new Date(l.date), day) && l.type === 'work');
+                const dayAbsenceLog = logs?.find(l => isSameDay(new Date(l.date), day) && l.type === 'absence');
+                const dayAbsence = absences?.find(a => isSameDay(new Date(a.startDate), day));
                 const isFichado = dayWorkLog?.type === 'work';
+                const isAusenciaLog = dayAbsenceLog?.type === 'absence';
+                const isAusencia = dayAbsence;
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
 
                 return (
@@ -207,6 +211,16 @@ export default function EmployeeDashboard() {
                       {isFichado && (
                         <div className="text-[10px] bg-emerald-100 text-emerald-700 p-1 rounded border border-emerald-200">
                           {dayWorkLog.startTime} - {dayWorkLog.endTime}
+                        </div>
+                      )}
+                      {isAusenciaLog && (
+                        <div className="text-[10px] bg-blue-100 text-blue-700 p-1 rounded border border-blue-200">
+                          {dayAbsenceLog.startTime} - {dayAbsenceLog.endTime}
+                        </div>
+                      )}
+                      {isAusencia && (
+                        <div className="text-[10px] bg-orange-100 text-orange-700 p-1 rounded border border-orange-200">
+                          {dayAbsence.isPartial ? "Ausencia Parcial" : "Ausencia Total"}
                         </div>
                       )}
                     </div>

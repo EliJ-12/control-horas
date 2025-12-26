@@ -35,7 +35,7 @@ export async function registerRoutes(
     }
   });
 
-  // File upload endpoint - simplified without Supabase dependency
+  // File upload endpoint
   app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -46,17 +46,10 @@ export async function registerRoutes(
     }
 
     try {
-      const file = req.file;
-      // For now, return a mock URL. In production, you'd configure proper file storage
-      const fileName = `${Date.now()}-${file.originalname}`;
-      const fileUrl = `/uploads/${fileName}`;
-      
-      // TODO: Implement actual file storage (S3, Supabase, etc.)
-      console.log('File uploaded:', fileName, 'Size:', file.size, 'Type:', file.mimetype);
-      
+      // For now, return a mock URL. In production, you'd upload to a cloud storage service
+      const fileUrl = `/uploads/${req.file.originalname}`;
       res.json({ fileUrl });
     } catch (error) {
-      console.error('Upload error:', error);
       res.status(500).json({ message: "Failed to upload file" });
     }
   });

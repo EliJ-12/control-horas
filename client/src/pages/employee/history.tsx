@@ -62,13 +62,19 @@ export default function EmployeeWorkHistory() {
     setEditingId(null);
   };
 
-  // Calculate total hours for filtered data
-  const totalHours = filteredByType.reduce((sum, log) => sum + log.totalHours, 0);
-  const totalHoursFormatted = `${Math.floor(totalHours / 60)}h ${totalHours % 60}m`;
-
-  // Combine only work logs for display (no absence records)
-  const allEvents = filteredByType.map(l => ({ ...l, eventType: 'log' }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  // Combine work logs (excluding absences) with absence records for display
+  const allEvents = [
+    ...filteredByType.map(l => ({ ...l, eventType: 'log' })),
+    ...(absences || []).map(a => ({ 
+      id: a.id, 
+      date: a.startDate, 
+      startTime: a.isPartial ? "Parcial" : "Completa", 
+      endTime: a.reason,
+      totalHours: a.partialHours || 0,
+      type: 'absence',
+      eventType: 'absence'
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <Layout>
@@ -82,10 +88,10 @@ export default function EmployeeWorkHistory() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Todos los Registros</CardTitle>
-              <div className="text-right">
-                <div className="text-sm font-medium">Total de Horas</div>
-                <div className="text-lg font-bold text-emerald-600">{totalHoursFormatted}</div>
-              </div>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Filtros
+              </Button>
             </div>
             <div className="flex flex-wrap gap-4 pt-2">
               <div className="space-y-2">
@@ -128,19 +134,20 @@ export default function EmployeeWorkHistory() {
                   <thead className="bg-muted/50 border-b">
                     <tr className="text-left">
                       <th className="p-4">Fecha</th>
-                      <th className="p-4">Entrada</th>
-                      <th className="p-4">Salida</th>
+                      <th className="p-4">Entrada / Info</th>
+                      <th className="p-4">Salida / Motivo</th>
                       <th className="p-4">Duración</th>
+                      <th className="p-4">Tipo</th>
                       <th className="p-4">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {allEvents.length > 0 ? (
                       allEvents.map((event: any) => (
-                        <tr key={event.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                        <tr key={`${event.eventType}-${event.id}`} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                           <td className="p-4">{format(new Date(event.date), 'dd/MM/yyyy')}</td>
                           <td className="p-4">
-                            {editingId === event.id ? (
+                            {editingId === event.id && event.eventType === 'log' ? (
                               <Input 
                                 type="time" 
                                 value={editData.startTime} 
@@ -150,7 +157,7 @@ export default function EmployeeWorkHistory() {
                             ) : event.startTime}
                           </td>
                           <td className="p-4">
-                            {editingId === event.id ? (
+                            {editingId === event.id && event.eventType === 'log' ? (
                               <Input 
                                 type="time" 
                                 value={editData.endTime} 
@@ -160,34 +167,48 @@ export default function EmployeeWorkHistory() {
                             ) : event.endTime}
                           </td>
                           <td className="p-4 font-medium">
-                            {Math.floor(event.totalHours / 60)}h {event.totalHours % 60}m
+                            {event.eventType === 'log' || event.type === 'absence' ? 
+                              `${Math.floor(event.totalHours / 60)}h ${event.totalHours % 60}m` : '-'}
+                          </td>
+                          <td className="p-4">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+                              event.type === 'work' ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-blue-50 text-blue-700 border-blue-100"
+                            )}>
+                              {event.type === 'work' ? 'Trabajo' : 'Ausencia'}
+                            </span>
                           </td>
                           <td className="p-4 flex gap-1">
-                            {editingId === event.id ? (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={() => handleSave(event.id)}>
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingId(null)}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(event)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => deleteLog.mutate(event.id)}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
+                            {event.eventType === 'log' && (
+                              editingId === event.id ? (
+                                <>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" onClick={() => handleSave(event.id)}>
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setEditingId(null)}>
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(event)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => deleteLog.mutate(event.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )
+                            )}
+                            {event.eventType === 'absence' && (
+                              <CalendarClock className="h-4 w-4 text-muted-foreground ml-2" />
                             )}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
                           No hay registros disponibles
                         </td>
                       </tr>
