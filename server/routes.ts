@@ -61,22 +61,17 @@ export async function registerRoutes(
 
   // File upload endpoint with Supabase Storage
   app.post('/api/upload', upload.single('file'), async (req, res) => {
-    console.log('Upload request received');
-    
     if (!req.isAuthenticated()) {
-      console.log('Upload failed: Not authenticated');
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     if (!req.file) {
-      console.log('Upload failed: No file received');
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     try {
       const userId = (req.user as any).id;
       const originalName = req.file.originalname;
-      console.log('Processing upload for user:', userId, 'file:', originalName);
       
       // Clean file name: replace spaces with hyphens, remove special characters
       const cleanFileName = originalName
@@ -86,7 +81,6 @@ export async function registerRoutes(
       // Create organized path with user folder and timestamp
       const timestamp = Date.now();
       const filePath = `${userId}/${timestamp}-${cleanFileName}`;
-      console.log('File path for upload:', filePath);
       
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
@@ -97,18 +91,13 @@ export async function registerRoutes(
         });
 
       if (error) {
-        console.error('Supabase upload error:', error);
         throw new Error('Failed to upload file to Supabase Storage');
       }
-
-      console.log('Supabase upload successful');
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('absence-files')
         .getPublicUrl(filePath);
-
-      console.log('Generated public URL:', publicUrl);
 
       res.json({ fileUrl: publicUrl });
     } catch (error) {
