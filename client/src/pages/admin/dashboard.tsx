@@ -54,6 +54,11 @@ export default function AdminDashboard() {
     return true;
   }) || [];
 
+  // Calculate total hours for the filtered period
+  const totalHours = filteredLogs.reduce((sum, log) => sum + (log.totalHours || 0), 0);
+  const totalWorkHours = filteredLogs.filter(log => log.type === 'work').reduce((sum, log) => sum + (log.totalHours || 0), 0);
+  const totalAbsenceHours = filteredLogs.filter(log => log.type === 'absence').reduce((sum, log) => sum + (log.totalHours || 0), 0);
+
   const handlePrev = () => setCurrentDate(prev => subMonths(prev, 1));
   const handleNext = () => setCurrentDate(prev => addMonths(prev, 1));
 
@@ -207,6 +212,22 @@ export default function AdminDashboard() {
                   <CardTitle>Histórico de Registros</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="mb-4 p-4 bg-muted/30 rounded-lg">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-emerald-700">Horas Trabajadas</div>
+                        <div className="text-lg">{Math.floor(totalWorkHours / 60)}h {totalWorkHours % 60}m</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-blue-700">Horas Ausencia</div>
+                        <div className="text-lg">{Math.floor(totalAbsenceHours / 60)}h {totalAbsenceHours % 60}m</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-gray-700">Total Horas</div>
+                        <div className="text-lg">{Math.floor(totalHours / 60)}h {totalHours % 60}m</div>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid gap-4 md:grid-cols-4">
                     <Select value={selectedEmployee?.toString() || "0"} onValueChange={(v) => setSelectedEmployee(v === "0" ? undefined : Number(v))}>
                       <SelectTrigger><SelectValue placeholder="Empleado" /></SelectTrigger>

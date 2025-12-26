@@ -62,19 +62,15 @@ export default function EmployeeWorkHistory() {
     setEditingId(null);
   };
 
-  // Combine work logs (excluding absences) with absence records for display
+  // Combine work logs (including both work and absence types) for display
   const allEvents = [
-    ...filteredByType.map(l => ({ ...l, eventType: 'log' })),
-    ...(absences || []).map(a => ({ 
-      id: a.id, 
-      date: a.startDate, 
-      startTime: a.isPartial ? "Parcial" : "Completa", 
-      endTime: a.reason,
-      totalHours: a.partialHours || 0,
-      type: 'absence',
-      eventType: 'absence'
-    }))
+    ...filteredByType.map(l => ({ ...l, eventType: 'log' }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Calculate total hours for the filtered period
+  const totalHours = filteredByType.reduce((sum, log) => sum + (log.totalHours || 0), 0);
+  const totalWorkHours = filteredByType.filter(log => log.type === 'work').reduce((sum, log) => sum + (log.totalHours || 0), 0);
+  const totalAbsenceHours = filteredByType.filter(log => log.type === 'absence').reduce((sum, log) => sum + (log.totalHours || 0), 0);
 
   return (
     <Layout>
@@ -128,6 +124,22 @@ export default function EmployeeWorkHistory() {
             </div>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 p-4 bg-muted/30 rounded-lg">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="text-center">
+                  <div className="font-semibold text-emerald-700">Horas Trabajadas</div>
+                  <div className="text-lg">{Math.floor(totalWorkHours / 60)}h {totalWorkHours % 60}m</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-blue-700">Horas Ausencia</div>
+                  <div className="text-lg">{Math.floor(totalAbsenceHours / 60)}h {totalAbsenceHours % 60}m</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-semibold text-gray-700">Total Horas</div>
+                  <div className="text-lg">{Math.floor(totalHours / 60)}h {totalHours % 60}m</div>
+                </div>
+              </div>
+            </div>
             <div className="rounded-md border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
