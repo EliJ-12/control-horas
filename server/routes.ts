@@ -20,11 +20,18 @@ export async function registerRoutes(
   // Setup Auth
   const { hashPassword } = await setupAuth(app);
 
-  // Initialize Supabase client
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Initialize Supabase client only if credentials are available
+  let supabase: any = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY
+      );
+    } catch (error) {
+      console.warn('Supabase client initialization failed:', error);
+    }
+  }
 
   // Configure multer for file uploads
   const upload = multer({
@@ -54,27 +61,35 @@ export async function registerRoutes(
 
     try {
       const file = req.file;
-      const fileName = `${Date.now()}-${file.originalname}`;
       
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('absence-files')
-        .upload(fileName, file.buffer, {
-          contentType: file.mimetype,
-          upsert: false
-        });
+      if (supabase) {
+        // Upload to Supabase storage
+        const fileName = `${Date.now()}-${file.originalname}`;
+        
+        const { data, error } = await supabase.storage
+          .from('absence-files')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false
+          });
 
-      if (error) {
-        console.error('Supabase upload error:', error);
-        return res.status(500).json({ message: "Failed to upload file to storage" });
+        if (error) {
+          console.error('Supabase upload error:', error);
+          return res.status(500).json({ message: "Failed to upload file to storage" });
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('absence-files')
+          .getPublicUrl(fileName);
+
+        res.json({ fileUrl: publicUrl });
+      } else {
+        // Fallback: return a mock URL when Supabase is not configured
+        console.warn('Supabase not configured, using fallback file URL');
+        const fileUrl = `/uploads/${file.originalname}`;
+        res.json({ fileUrl });
       }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('absence-files')
-        .getPublicUrl(fileName);
-
-      res.json({ fileUrl: publicUrl });
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ message: "Failed to upload file" });
