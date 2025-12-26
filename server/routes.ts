@@ -25,18 +25,19 @@ export async function registerRoutes(
                         process.env.NEXT_PUBLIC_SUPABASE_URL || 
                         process.env.VITE_SUPABASE_URL || '';
   
-  const supabaseKey = process.env.SUPABASE_ANON_KEY || 
-                       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
-                       process.env.VITE_SUPABASE_ANON_KEY || '';
+  // Use service role key for admin operations (bypasses RLS)
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                       process.env.SUPABASE_KEY || 
+                       process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '';
   
   if (!supabaseUrl || !supabaseKey) {
     console.error('Missing Supabase environment variables. Available env vars:', {
       SUPABASE_URL: !!process.env.SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
-      SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      VITE_SUPABASE_ANON_KEY: !!process.env.VITE_SUPABASE_ANON_KEY
+      SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SUPABASE_KEY: !!process.env.SUPABASE_KEY,
+      NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
     });
     throw new Error('Supabase configuration is missing. Please check your environment variables.');
   }
@@ -134,7 +135,8 @@ export async function registerRoutes(
       res.json({ fileUrl: urlData.publicUrl });
     } catch (error) {
       console.error('Upload error:', error);
-      res.status(500).json({ message: "Failed to upload file", error: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ message: "Failed to upload file", error: errorMessage });
     }
   });
 
