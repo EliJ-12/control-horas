@@ -7,6 +7,7 @@ import { setupAuth } from "./auth.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
 import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "../shared/schema.js";
+import { supabaseClient } from "./db.js";
 
 import { db } from "./db.js";
 import { users, workLogs } from "../shared/schema.js";
@@ -48,7 +49,17 @@ export async function registerRoutes(
     try {
       const userId = (req.user as any).id;
       const fileName = req.file.originalname;
-      const fileUrl = `absence-files/${userId}/${fileName}`;
+      const fileUrl = `absence-files/${userId}_${fileName}`;
+      
+      // Upload to Supabase storage without subfolder
+      const { data, error } = await supabaseClient
+        .storage
+        .from('absence-files')
+        .upload(`${userId}_${fileName}`, req.file.buffer, { upsert: true });
+      
+      if (error) {
+        throw error;
+      }
       
       res.json({ fileUrl });
     } catch (error) {
