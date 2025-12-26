@@ -7,10 +7,11 @@ import { setupAuth } from "./auth.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
 import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "../shared/schema.js";
+import { uploadFileToSupabase } from './supabase-storage';
+
 import { db } from "./db.js";
 import { users, workLogs } from "../shared/schema.js";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { uploadToSupabase } from "./supabase";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -35,7 +36,7 @@ export async function registerRoutes(
     }
   });
 
-  // File upload endpoint
+// File upload endpoint
   app.post('/api/upload', upload.single('file'), async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -47,9 +48,15 @@ export async function registerRoutes(
 
     try {
       const userId = (req.user as any).id;
-      const fileUrl = await uploadToSupabase(req.file, userId);
       
-      res.json({ fileUrl });
+      // Usar Supabase Storage para subir el archivo
+      const { url, error } = await uploadFileToSupabase(req.file, userId);
+      
+      if (error) {
+        return res.status(500).json({ message: error });
+      }
+      
+      res.json({ fileUrl: url });
     } catch (error) {
       console.error('Upload error:', error);
       res.status(500).json({ message: "Failed to upload file" });
