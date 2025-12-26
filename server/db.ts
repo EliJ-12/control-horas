@@ -10,5 +10,19 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = process.env.DATABASE_URL;
+
+// Supabase requires SSL in most environments (including Vercel).
+// Using sslmode=require in the URL usually works, but explicitly enabling SSL
+// avoids resolution differences between runtimes.
+const shouldUseSsl =
+  process.env.NODE_ENV === "production" &&
+  /\.supabase\.co(?::\d+)?\//.test(connectionString);
+
+export const pool = new Pool({
+  connectionString,
+  ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
+  connectionTimeoutMillis: 10_000,
+  idleTimeoutMillis: 30_000,
+});
 export const db = drizzle(pool, { schema });
