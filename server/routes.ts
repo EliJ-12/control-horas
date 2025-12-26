@@ -61,15 +61,25 @@ export async function registerRoutes(
 
   // File upload endpoint with Supabase Storage
   app.post('/api/upload', upload.single('file'), async (req, res) => {
+    console.log('Upload request received');
+    
     if (!req.isAuthenticated()) {
+      console.log('Upload failed: Not authenticated');
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     if (!req.file) {
+      console.log('Upload failed: No file');
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     try {
+      console.log('File details:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
+
       const userId = (req.user as any).id;
       const originalName = req.file.originalname;
       
@@ -82,27 +92,49 @@ export async function registerRoutes(
       const timestamp = Date.now();
       const filePath = `${userId}/${timestamp}-${cleanFileName}`;
       
+      console.log('Upload path:', filePath);
+      console.log('Supabase client initialized:', !!supabase);
+      
       // Upload to Supabase Storage
+      console.log('Attempting upload to bucket: absence-files');
       const { data, error } = await supabase.storage
         .from('absence-files')
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype,
+          cacheControl: '3600',
           upsert: false
         });
 
+      console.log('Supabase upload result:', { data, error });
+
       if (error) {
-        throw new Error('Failed to upload file to Supabase Storage');
+        console.error('Supabase upload error:', error);
+        // Try alternative bucket name if needed
+        console.log('Trying alternative approach...');
+        
+        const { data: altData, error: altError } = await supabase.storage
+          .from('absence-files')
+          .upload(filePath, req.file.buffer);
+          
+        if (altError) {
+          const errorMessage = altError instanceof Error ? altError.message : String(altError);
+          throw new Error(`Failed to upload file to Supabase Storage: ${errorMessage}`);
+        }
+        
+        console.log('Alternative upload successful:', altData);
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('absence-files')
         .getPublicUrl(filePath);
 
-      res.json({ fileUrl: publicUrl });
+      console.log('Public URL result:', urlData);
+
+      res.json({ fileUrl: urlData.publicUrl });
     } catch (error) {
       console.error('Upload error:', error);
-      res.status(500).json({ message: "Failed to upload file" });
+      res.status(500).json({ message: "Failed to upload file", error: error.message });
     }
   });
 
