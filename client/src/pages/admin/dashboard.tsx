@@ -54,6 +54,10 @@ export default function AdminDashboard() {
     return true;
   }) || [];
 
+  // Calculate total hours for filtered data
+  const totalHours = filteredLogs.reduce((sum, log) => sum + log.totalHours, 0);
+  const totalHoursFormatted = `${Math.floor(totalHours / 60)}h ${totalHours % 60}m`;
+
   const handlePrev = () => setCurrentDate(prev => subMonths(prev, 1));
   const handleNext = () => setCurrentDate(prev => addMonths(prev, 1));
 
@@ -205,6 +209,10 @@ export default function AdminDashboard() {
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Histórico de Registros</CardTitle>
+                  <div className="text-right">
+                    <div className="text-sm font-medium">Total de Horas</div>
+                    <div className="text-lg font-bold text-emerald-600">{totalHoursFormatted}</div>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-4">

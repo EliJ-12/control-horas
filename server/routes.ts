@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import path from "path";
+import { createClient } from '@supabase/supabase-js';
 import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
 import { api } from "../shared/routes.js";
@@ -18,6 +19,12 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Setup Auth
   const { hashPassword } = await setupAuth(app);
+
+  // Initialize Supabase client
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   // Configure multer for file uploads
   const upload = multer({
@@ -46,10 +53,30 @@ export async function registerRoutes(
     }
 
     try {
-      // For now, return a mock URL. In production, you'd upload to a cloud storage service
-      const fileUrl = `/uploads/${req.file.originalname}`;
-      res.json({ fileUrl });
+      const file = req.file;
+      const fileName = `${Date.now()}-${file.originalname}`;
+      
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('absence-files')
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Supabase upload error:', error);
+        return res.status(500).json({ message: "Failed to upload file to storage" });
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('absence-files')
+        .getPublicUrl(fileName);
+
+      res.json({ fileUrl: publicUrl });
     } catch (error) {
+      console.error('Upload error:', error);
       res.status(500).json({ message: "Failed to upload file" });
     }
   });
