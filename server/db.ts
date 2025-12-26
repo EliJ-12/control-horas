@@ -12,16 +12,26 @@ if (!process.env.DATABASE_URL) {
 
 const connectionString = process.env.DATABASE_URL;
 
+// Some drivers/layers parse `sslmode=require` from the URL and enable TLS with
+// certificate verification by default, which can fail on serverless platforms
+// with `SELF_SIGNED_CERT_IN_CHAIN`. We strip `sslmode` and control TLS via the
+// explicit `ssl` option below.
+let sanitizedConnectionString = connectionString;
+try {
+  const url = new URL(connectionString);
+  url.searchParams.delete("sslmode");
+  sanitizedConnectionString = url.toString();
+} catch {
+  // If DATABASE_URL isn't a valid URL for Node's URL parser, leave it as-is.
+}
+
 // Supabase requires SSL in most environments (including Vercel).
 // Using sslmode=require in the URL usually works, but explicitly enabling SSL
 // avoids resolution differences between runtimes.
-const shouldUseSsl =
-  process.env.NODE_ENV === "production" &&
-  (connectionString.includes("sslmode=require") ||
-    /\.supabase\.(co|com)(?::\d+)?\//.test(connectionString));
+const shouldUseSsl = process.env.NODE_ENV === "production";
 
 export const pool = new Pool({
-  connectionString,
+  connectionString: sanitizedConnectionString,
   ssl: shouldUseSsl ? { rejectUnauthorized: false } : undefined,
   connectionTimeoutMillis: 10_000,
   idleTimeoutMillis: 30_000,
