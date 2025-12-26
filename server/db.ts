@@ -1,7 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "../shared/schema.js";
-import { createClient } from '@supabase/supabase-js';
 
 const { Pool } = pg;
 
@@ -38,9 +37,3 @@ export const pool = new Pool({
   idleTimeoutMillis: 30_000,
 });
 export const db = drizzle(pool, { schema });
-
-// Create Supabase client for storage operations
-export const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
