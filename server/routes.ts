@@ -46,8 +46,10 @@ export async function registerRoutes(
     }
 
     try {
-      // For now, return a mock URL. In production, you'd upload to a cloud storage service
-      const fileUrl = `/uploads/${req.file.originalname}`;
+      const userId = (req.user as any).id;
+      const fileName = req.file.originalname;
+      const fileUrl = `absence-files/${userId}/${fileName}`;
+      
       res.json({ fileUrl });
     } catch (error) {
       res.status(500).json({ message: "Failed to upload file" });

@@ -30,11 +30,11 @@ export default function EmployeeWorkHistory() {
     endDate: filterEndDate || monthEnd 
   });
 
-  // Filter out absences from work logs and only show work logs and absence work logs
+  // Filter logs by user and date range, but include both work and absence types
   const filteredLogs = logs?.filter(log => log.type !== 'absence') || [];
   
-  // Apply type filter
-  const filteredByType = filterType === "all" ? filteredLogs : filteredLogs.filter(log => log.type === filterType);
+  // Apply type filter (all, work, or absence)
+  const filteredByType = filterType === "all" ? logs || [] : logs?.filter(log => log.type === filterType) || [];
 
   const { data: absences } = useAbsences({ 
     userId: user?.id 
@@ -68,7 +68,6 @@ export default function EmployeeWorkHistory() {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Calculate total hours for the filtered period
-  const totalHours = filteredByType.reduce((sum, log) => sum + (log.totalHours || 0), 0);
   const totalWorkHours = filteredByType.filter(log => log.type === 'work').reduce((sum, log) => sum + (log.totalHours || 0), 0);
   const totalAbsenceHours = filteredByType.filter(log => log.type === 'absence').reduce((sum, log) => sum + (log.totalHours || 0), 0);
 
@@ -125,7 +124,7 @@ export default function EmployeeWorkHistory() {
           </CardHeader>
           <CardContent>
             <div className="mb-4 p-4 bg-muted/30 rounded-lg">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="text-center">
                   <div className="font-semibold text-emerald-700">Horas Trabajadas</div>
                   <div className="text-lg">{Math.floor(totalWorkHours / 60)}h {totalWorkHours % 60}m</div>
@@ -133,10 +132,6 @@ export default function EmployeeWorkHistory() {
                 <div className="text-center">
                   <div className="font-semibold text-blue-700">Horas Ausencia</div>
                   <div className="text-lg">{Math.floor(totalAbsenceHours / 60)}h {totalAbsenceHours % 60}m</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-gray-700">Total Horas</div>
-                  <div className="text-lg">{Math.floor(totalHours / 60)}h {totalHours % 60}m</div>
                 </div>
               </div>
             </div>

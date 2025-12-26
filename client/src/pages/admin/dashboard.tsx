@@ -55,7 +55,6 @@ export default function AdminDashboard() {
   }) || [];
 
   // Calculate total hours for the filtered period
-  const totalHours = filteredLogs.reduce((sum, log) => sum + (log.totalHours || 0), 0);
   const totalWorkHours = filteredLogs.filter(log => log.type === 'work').reduce((sum, log) => sum + (log.totalHours || 0), 0);
   const totalAbsenceHours = filteredLogs.filter(log => log.type === 'absence').reduce((sum, log) => sum + (log.totalHours || 0), 0);
 
@@ -213,7 +212,7 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="mb-4 p-4 bg-muted/30 rounded-lg">
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="text-center">
                         <div className="font-semibold text-emerald-700">Horas Trabajadas</div>
                         <div className="text-lg">{Math.floor(totalWorkHours / 60)}h {totalWorkHours % 60}m</div>
@@ -221,10 +220,6 @@ export default function AdminDashboard() {
                       <div className="text-center">
                         <div className="font-semibold text-blue-700">Horas Ausencia</div>
                         <div className="text-lg">{Math.floor(totalAbsenceHours / 60)}h {totalAbsenceHours % 60}m</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-gray-700">Total Horas</div>
-                        <div className="text-lg">{Math.floor(totalHours / 60)}h {totalHours % 60}m</div>
                       </div>
                     </div>
                   </div>

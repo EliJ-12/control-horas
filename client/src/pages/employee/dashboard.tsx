@@ -153,15 +153,25 @@ export default function EmployeeDashboard() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <div className="flex items-center gap-4">
               <CardTitle>Mi Calendario - {format(currentDate, view === 'month' ? 'MMMM yyyy' : "'Semana del' dd 'de' MMMM")}</CardTitle>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrev}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNext}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentDate(today)}>Hoy</Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-xs">
+                <div className="w-3 h-3 bg-emerald-100 border border-emerald-200 rounded"></div>
+                <span>Trabajo</span>
               </div>
+              <div className="flex items-center gap-1 text-xs">
+                <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
+                <span>Ausencia</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrev}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNext}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentDate(today)}>Hoy</Button>
             </div>
             <div className="flex items-center gap-2">
               <Button 
