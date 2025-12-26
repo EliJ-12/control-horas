@@ -20,11 +20,28 @@ export async function registerRoutes(
   // Setup Auth
   const { hashPassword } = await setupAuth(app);
 
-  // Initialize Supabase client
-  const supabase = createClient(
-    process.env.SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  );
+  // Initialize Supabase client with multiple possible environment variable names
+  const supabaseUrl = process.env.SUPABASE_URL || 
+                        process.env.NEXT_PUBLIC_SUPABASE_URL || 
+                        process.env.VITE_SUPABASE_URL || '';
+  
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || 
+                       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+                       process.env.VITE_SUPABASE_ANON_KEY || '';
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Missing Supabase environment variables. Available env vars:', {
+      SUPABASE_URL: !!process.env.SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      VITE_SUPABASE_URL: !!process.env.VITE_SUPABASE_URL,
+      SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      VITE_SUPABASE_ANON_KEY: !!process.env.VITE_SUPABASE_ANON_KEY
+    });
+    throw new Error('Supabase configuration is missing. Please check your environment variables.');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Configure multer for file uploads
   const upload = multer({
