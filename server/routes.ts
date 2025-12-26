@@ -46,13 +46,33 @@ export async function registerRoutes(
     }
 
     try {
-      const userId = (req.user as any).id;
-      const fileName = req.file.originalname;
-      const fileUrl = `absence-files/${userId}/${fileName}`;
+      const { supabase } = require('./lib/supabase');
       
-      res.json({ fileUrl });
+      // Generar nombre único para el archivo
+      const fileName = Date.now() + '-' + req.file.originalname;
+
+      // Subir a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('absence-files')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (error) {
+        throw new Error('Error al subir archivo: ' + error.message);
+      }
+
+      // Obtener URL pública del archivo
+      const { data: urlData } = supabase.storage
+        .from('absence-files')
+        .getPublicUrl(fileName);
+
+      const documentUrl = urlData.publicUrl;
+      
+      res.json({ fileUrl: documentUrl });
     } catch (error) {
-      res.status(500).json({ message: "Failed to upload file" });
+      res.status(500).json({ message: (error as Error).message || "Failed to upload file" });
     }
   });
 
