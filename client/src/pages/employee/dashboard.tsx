@@ -234,6 +234,7 @@ export default function EmployeeDashboard() {
         </Card>
 
         <AutoTimeSettings />
+        {console.log('AutoTimeSettings component added to dashboard')}
       </div>
     </Layout>
   );

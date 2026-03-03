@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, users, workLogs, absences } from './schema.js';
+import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema, users, workLogs, absences, autoTimeSettings } from './schema.js';
 
 export const errorSchemas = {
   validation: z.object({
@@ -126,6 +126,34 @@ export const api = {
       responses: {
         200: z.custom<typeof absences.$inferSelect>(),
         404: errorSchemas.notFound,
+      },
+    },
+  },
+  autoTimeSettings: {
+    get: {
+      method: 'GET' as const,
+      path: '/api/auto-time-settings',
+      responses: {
+        200: z.custom<typeof autoTimeSettings.$inferSelect>().nullable(),
+        401: errorSchemas.unauthorized,
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/auto-time-settings',
+      input: insertAutoTimeSettingsSchema,
+      responses: {
+        200: z.custom<typeof autoTimeSettings.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    adminList: {
+      method: 'GET' as const,
+      path: '/api/admin/auto-time-settings',
+      responses: {
+        200: z.array(z.custom<typeof autoTimeSettings.$inferSelect>()),
+        401: errorSchemas.unauthorized,
       },
     },
   },

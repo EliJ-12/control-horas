@@ -10,8 +10,9 @@ import { Clock, Settings, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function AutoTimeSettings() {
+  console.log('AutoTimeSettings component rendering...');
   const { user } = useAuth();
-  const { data: settings, isLoading } = useAutoTimeSettings();
+  const { data: settings, isLoading, error } = useAutoTimeSettings();
   const saveSettings = useSaveAutoTimeSettings();
   
   const [formData, setFormData] = useState({
@@ -29,7 +30,7 @@ export default function AutoTimeSettings() {
   });
 
   // Update form data when settings are loaded
-  if (settings && !isLoading && formData.enabled !== settings.enabled) {
+  if (settings && !isLoading && !error && formData.enabled !== settings.enabled) {
     setFormData({
       enabled: settings.enabled || false,
       monday: settings.monday || false,
@@ -120,6 +121,7 @@ export default function AutoTimeSettings() {
     );
   }
 
+  // Show component even if there's an error or no data
   return (
     <Card>
       <CardHeader>
@@ -129,6 +131,22 @@ export default function AutoTimeSettings() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {error && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-start gap-2">
+              <Settings className="h-4 w-4 text-yellow-600 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-medium mb-1">Sin conexión al servidor</p>
+                <p>
+                  No se puede conectar al servidor para cargar/guardar la configuración. 
+                  El componente se muestra en modo demostración. 
+                  Por favor, contacta al administrador para configurar el servidor.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <Label>Activar registro automático</Label>
@@ -139,6 +157,7 @@ export default function AutoTimeSettings() {
           <Switch
             checked={formData.enabled}
             onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
+            disabled={!!error}
           />
         </div>
 
@@ -153,6 +172,7 @@ export default function AutoTimeSettings() {
                       id={day.key}
                       checked={formData[day.key] as boolean}
                       onCheckedChange={() => handleDayToggle(day.key)}
+                      disabled={!!error}
                     />
                     <Label htmlFor={day.key} className="text-sm">
                       {day.label}
@@ -170,6 +190,7 @@ export default function AutoTimeSettings() {
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                  disabled={!!error}
                 />
               </div>
 
@@ -180,6 +201,7 @@ export default function AutoTimeSettings() {
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                  disabled={!!error}
                 />
               </div>
 
@@ -190,6 +212,7 @@ export default function AutoTimeSettings() {
                   type="time"
                   value={formData.autoRegisterTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, autoRegisterTime: e.target.value }))}
+                  disabled={!!error}
                 />
               </div>
             </div>
@@ -215,7 +238,7 @@ export default function AutoTimeSettings() {
 
             <Button 
               onClick={handleSave} 
-              disabled={saveSettings.isPending}
+              disabled={saveSettings.isPending || !!error}
               className="w-full md:w-auto"
             >
               {saveSettings.isPending ? (

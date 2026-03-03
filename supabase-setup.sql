@@ -43,11 +43,31 @@ CREATE TABLE IF NOT EXISTS absences (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create auto_time_settings table for automatic time registration
+CREATE TABLE IF NOT EXISTS auto_time_settings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  enabled BOOLEAN DEFAULT FALSE,
+  monday BOOLEAN DEFAULT FALSE,
+  tuesday BOOLEAN DEFAULT FALSE,
+  wednesday BOOLEAN DEFAULT FALSE,
+  thursday BOOLEAN DEFAULT FALSE,
+  friday BOOLEAN DEFAULT FALSE,
+  saturday BOOLEAN DEFAULT FALSE,
+  sunday BOOLEAN DEFAULT FALSE,
+  start_time TIME NOT NULL, -- HH:mm format
+  end_time TIME NOT NULL, -- HH:mm format
+  auto_register_time TIME NOT NULL, -- HH:mm format when to auto-create the record
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_work_logs_user_date ON work_logs(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_work_logs_date ON work_logs(date);
 CREATE INDEX IF NOT EXISTS idx_absences_user_status ON absences(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_absences_dates ON absences(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_auto_time_settings_user_enabled ON auto_time_settings(user_id, enabled);
 
 -- Insert default admin user (password: admin123)
 INSERT INTO users (username, password, full_name, role) 
@@ -66,3 +86,4 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_work_logs_updated_at BEFORE UPDATE ON work_logs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_absences_updated_at BEFORE UPDATE ON absences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_auto_time_settings_updated_at BEFORE UPDATE ON auto_time_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
