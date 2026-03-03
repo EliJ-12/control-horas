@@ -1,5 +1,6 @@
 import { serveStatic } from "./static.js";
 import { createApp } from "./app.js";
+import { startAutoTimeScheduler } from "./scheduler.js";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -33,4 +34,7 @@ export function log(message: string, source = "express") {
       log(`serving on port ${port}`);
     },
   );
+
+  // Start the auto time scheduler
+  startAutoTimeScheduler();
 })();

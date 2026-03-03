@@ -1,0 +1,120 @@
+import { db } from "../server/db.js";
+import { autoTimeSettings, workLogs } from "../shared/schema.js";
+import { eq, and } from "drizzle-orm";
+
+export class AutoTimeScheduler {
+  private interval: NodeJS.Timeout | null = null;
+
+  constructor() {
+    // Run every minute to check for scheduled registrations
+    this.interval = setInterval(() => {
+      this.processScheduledRegistrations();
+    }, 60000); // Check every minute
+  }
+
+  async processScheduledRegistrations() {
+    try {
+      console.log('Processing scheduled time registrations...');
+      
+      const now = new Date();
+      const currentTime = now.toTimeString().slice(0, 5); // HH:mm format
+      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // Get all enabled auto time settings
+      const allSettings = await db.select().from(autoTimeSettings).where(eq(autoTimeSettings.enabled, true));
+
+      for (const settings of allSettings) {
+        // Check if current time matches the auto register time (within the same minute)
+        if (this.shouldRegisterForDay(settings, currentDay) && 
+            this.isTimeToRegister(settings.autoRegisterTime, currentTime)) {
+          
+          // Check if a work log already exists for today
+          const existingLog = await db.select()
+            .from(workLogs)
+            .where(and(
+              eq(workLogs.userId, settings.userId),
+              eq(workLogs.date, currentDate)
+            ))
+            .limit(1);
+
+          if (existingLog.length === 0) {
+            // Create new work log
+            await this.createAutoWorkLog(settings, currentDate);
+            console.log(`Created auto work log for user ${settings.userId} on ${currentDate}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing scheduled time registrations:', error);
+    }
+  }
+
+  shouldRegisterForDay(settings: any, currentDay: number): boolean {
+    const dayMap = {
+      0: settings.sunday,    // Sunday
+      1: settings.monday,    // Monday
+      2: settings.tuesday,   // Tuesday
+      3: settings.wednesday, // Wednesday
+      4: settings.thursday,  // Thursday
+      5: settings.friday,    // Friday
+      6: settings.saturday   // Saturday
+    };
+    
+    return dayMap[currentDay as keyof typeof dayMap] || false;
+  }
+
+  isTimeToRegister(autoRegisterTime: string, currentTime: string): boolean {
+    // Check if current time matches the scheduled time (within the same minute)
+    return autoRegisterTime === currentTime;
+  }
+
+  async createAutoWorkLog(settings: any, date: string) {
+    // Calculate total hours in minutes
+    const [startHour, startMin] = settings.startTime.split(':').map(Number);
+    const [endHour, endMin] = settings.endTime.split(':').map(Number);
+    
+    const startTotalMinutes = startHour * 60 + startMin;
+    const endTotalMinutes = endHour * 60 + endMin;
+    const totalMinutes = endTotalMinutes - startTotalMinutes;
+
+    if (totalMinutes <= 0) {
+      console.warn(`Invalid time range for user ${settings.userId}: ${settings.startTime} - ${settings.endTime}`);
+      return;
+    }
+
+    await db.insert(workLogs).values({
+      userId: settings.userId,
+      date: date,
+      startTime: settings.startTime,
+      endTime: settings.endTime,
+      totalHours: totalMinutes,
+      type: 'work'
+    });
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+}
+
+// Global scheduler instance
+let scheduler: AutoTimeScheduler | null = null;
+
+export function startAutoTimeScheduler() {
+  if (!scheduler) {
+    scheduler = new AutoTimeScheduler();
+    console.log('Auto time scheduler started');
+  }
+}
+
+export function stopAutoTimeScheduler() {
+  if (scheduler) {
+    scheduler.stop();
+    scheduler = null;
+    console.log('Auto time scheduler stopped');
+  }
+}

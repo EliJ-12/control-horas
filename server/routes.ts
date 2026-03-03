@@ -6,11 +6,11 @@ import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
-import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema } from "../shared/schema.js";
+import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema } from "../shared/schema.js";
 import { createClient } from '@supabase/supabase-js';
 
 import { db } from "./db.js";
-import { users, workLogs } from "../shared/schema.js";
+import { users, workLogs, autoTimeSettings } from "../shared/schema.js";
 import { eq, and, gte, lte } from "drizzle-orm";
 
 export async function registerRoutes(
@@ -368,6 +368,98 @@ export async function registerRoutes(
     const id = Number(req.params.id);
     const [updated] = await db.update(users).set(req.body).where(eq(users.id, id)).returning();
     res.json(updated);
+  });
+
+  // === AUTO TIME SETTINGS ROUTES ===
+
+  // Get auto time settings for current user
+  app.get("/api/auto-time-settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = (req.user as any).id;
+    const settings = await db.select()
+      .from(autoTimeSettings)
+      .where(eq(autoTimeSettings.userId, userId))
+      .limit(1);
+
+    res.json(settings[0] || null);
+  });
+
+  // Create or update auto time settings for current user
+  app.post("/api/auto-time-settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      const validatedData = insertAutoTimeSettingsSchema.parse({
+        ...req.body,
+        userId
+      });
+
+      // Check if settings already exist for this user
+      const existing = await db.select()
+        .from(autoTimeSettings)
+        .where(eq(autoTimeSettings.userId, userId))
+        .limit(1);
+
+      let result;
+      if (existing.length > 0) {
+        // Update existing settings
+        result = await db.update(autoTimeSettings)
+          .set({
+            ...validatedData,
+            updatedAt: new Date()
+          })
+          .where(eq(autoTimeSettings.userId, userId))
+          .returning();
+      } else {
+        // Create new settings
+        result = await db.insert(autoTimeSettings)
+          .values(validatedData)
+          .returning();
+      }
+
+      res.json(result[0]);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
+    }
+  });
+
+  // Get all auto time settings (admin only)
+  app.get("/api/admin/auto-time-settings", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const settings = await db.select({
+      id: autoTimeSettings.id,
+      userId: autoTimeSettings.userId,
+      enabled: autoTimeSettings.enabled,
+      monday: autoTimeSettings.monday,
+      tuesday: autoTimeSettings.tuesday,
+      wednesday: autoTimeSettings.wednesday,
+      thursday: autoTimeSettings.thursday,
+      friday: autoTimeSettings.friday,
+      saturday: autoTimeSettings.saturday,
+      sunday: autoTimeSettings.sunday,
+      startTime: autoTimeSettings.startTime,
+      endTime: autoTimeSettings.endTime,
+      autoRegisterTime: autoTimeSettings.autoRegisterTime,
+      createdAt: autoTimeSettings.createdAt,
+      updatedAt: autoTimeSettings.updatedAt,
+      userFullName: users.fullName
+    })
+    .from(autoTimeSettings)
+    .leftJoin(users, eq(autoTimeSettings.userId, users.id));
+
+    res.json(settings);
   });
 
   return httpServer;
