@@ -112,10 +112,14 @@ export class AutoTimeScheduler {
   }
 
   isTimeToRegister(autoRegisterTime: string, currentTime: string): boolean {
-    // Convertir time a string para comparación segura
-    const registerTimeStr = autoRegisterTime.toString().slice(0, 5); // HH:mm format
-    const currentTimeStr = currentTime.slice(0, 5); // HH:mm format
-    return registerTimeStr === currentTimeStr;
+    // CORREGIDO: Comparar usando formato consistente
+    // Convertir ambos a formato hh:mm:ss para comparación exacta
+    const registerTimeFull = autoRegisterTime.toString().padEnd(8, '00'); // hh:mm:ss
+    const currentFullTime = currentTime + ':00'; // hh:mm -> hh:mm:ss
+    
+    console.log(`⏰ Time comparison: registerTime="${registerTimeFull}" vs currentTime="${currentFullTime}"`);
+    
+    return registerTimeFull === currentFullTime;
   }
 
   async createAutoWorkLog(settings: AutoTimeSettings, date: string) {

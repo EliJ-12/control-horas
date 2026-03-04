@@ -59,6 +59,14 @@ export class SimpleAutoTimeScheduler {
         console.log(`   - autoRegisterTime: ${settings.autoRegisterTime}`);
         console.log(`   - currentTime: ${currentTime}`);
         
+        // CORREGIDO: Comparar usando formato consistente
+        // Ambos en formato hh:mm:ss para comparación exacta
+        const registerTimeFull = settings.autoRegisterTime.toString().padEnd(8, '00'); // hh:mm:ss
+        const currentFullTime = currentTime + ':00'; // hh:mm -> hh:mm:ss
+        
+        console.log(`   - registerTimeFull: ${registerTimeFull}`);
+        console.log(`   - currentFullTime: ${currentFullTime}`);
+        
         // SIMPLIFICADO: Siempre intentar crear registro (ignorar verificación de tiempo)
         console.log(`🔧 Forcing creation for user ${settings.userId}...`);
         

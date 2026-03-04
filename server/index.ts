@@ -36,9 +36,9 @@ export function log(message: string, source = "express") {
     },
   );
 
-  // Start the auto time scheduler (commented out for testing)
-  // startAutoTimeScheduler();
+  // Start the auto time scheduler (original - corregido)
+  startAutoTimeScheduler();
   
-  // Start the SIMPLE auto time scheduler for debugging
-  startSimpleAutoTimeScheduler();
+  // Simple scheduler comentado - solo para debugging
+  // startSimpleAutoTimeScheduler();
 })();
