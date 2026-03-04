@@ -5,21 +5,28 @@ import type { AutoTimeSettings } from "../shared/schema.js";
 
 export class AutoTimeScheduler {
   private interval: NodeJS.Timeout | null = null;
+  private isProcessing: boolean = false; // Evitar procesamiento concurrente
 
   constructor() {
-    console.log('🚀 Initializing AutoTimeScheduler...');
+    console.log('🚀 [SCHEDULER] Iniciando AutoTimeScheduler...');
     this.testDatabaseConnection();
-    // Run every minute to check for scheduled registrations
+    // Ejecutar cada minuto
     this.interval = setInterval(() => {
-      this.processScheduledRegistrations();
-    }, 60000); // Check every minute
-    console.log('⏰ AutoTimeScheduler started, checking every minute');
-    
-    // Also run immediately for testing
+      if (!this.isProcessing) {
+        this.processScheduledRegistrations();
+      } else {
+        console.log('⚠️ [SCHEDULER] Saltando ejecución - procesamiento anterior aún activo');
+      }
+    }, 60000);
+    console.log('⏰ [SCHEDULER] Scheduler iniciado - ejecutándose cada 60 segundos');
+
+    // Ejecutar inmediatamente para pruebas
     setTimeout(() => {
-      console.log('🧪 Running immediate test check...');
-      this.processScheduledRegistrations();
-    }, 5000); // Run after 5 seconds for immediate testing
+      console.log('🧪 [SCHEDULER] Ejecutando verificación inicial inmediata...');
+      if (!this.isProcessing) {
+        this.processScheduledRegistrations();
+      }
+    }, 3000); // Esperar 3 segundos para inicialización
   }
 
   async testDatabaseConnection() {
@@ -33,67 +40,110 @@ export class AutoTimeScheduler {
   }
 
   async processScheduledRegistrations() {
+    if (this.isProcessing) {
+      console.log('⚠️ [SCHEDULER] Saltando - ya hay un procesamiento activo');
+      return;
+    }
+
+    this.isProcessing = true;
+    const startTime = Date.now();
+
     try {
-      console.log('🔄 Processing scheduled time registrations...');
-      
-      // Usar zona horaria de España (Europe/Madrid)
+      console.log('🔄 [SCHEDULER] === INICIANDO PROCESAMIENTO DE REGISTROS PROGRAMADOS ===');
+
+      // PASO 1: Calcular tiempo actual en España
+      console.log('📅 [SCHEDULER] PASO 1: Calculando tiempo actual en España...');
       const now = new Date();
       const spainTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Madrid" }));
       const currentTime = spainTime.toTimeString().slice(0, 5); // HH:mm format
       const currentDay = spainTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
       const currentDate = spainTime.toISOString().split('T')[0]; // YYYY-MM-DD
 
-      console.log(`📍 Spain time: ${currentTime}, Day: ${currentDay}, Date: ${currentDate}`);
-      console.log(`🌍 UTC time: ${now.toTimeString().slice(0, 5)}, UTC Day: ${now.getDay()}`);
+      console.log(`📍 [SCHEDULER] Tiempo España: ${currentTime}, Día: ${currentDay}, Fecha: ${currentDate}`);
+      console.log(`🌍 [SCHEDULER] UTC actual: ${now.toTimeString().slice(0, 5)}, Día UTC: ${now.getDay()}`);
 
-      // Get all enabled auto time settings
+      // PASO 2: Obtener configuraciones activas
+      console.log('👥 [SCHEDULER] PASO 2: Obteniendo configuraciones activas...');
       const allSettings = await db.select().from(autoTimeSettings).where(eq(autoTimeSettings.enabled, true));
-      console.log(`👥 Found ${allSettings.length} enabled auto time settings`);
+      console.log(`� [SCHEDULER] Encontradas ${allSettings.length} configuraciones activas`);
 
       if (allSettings.length === 0) {
-        console.log('⚠️ No enabled auto time settings found');
+        console.log('⚠️ [SCHEDULER] No hay configuraciones activas - terminando procesamiento');
         return;
       }
 
+      // PASO 3: Procesar cada configuración
+      console.log('🔄 [SCHEDULER] PASO 3: Procesando cada configuración activa...');
+
       for (const settings of allSettings) {
-        console.log(`👤 Checking user ${settings.userId}:`);
-        console.log(`   - enabled: ${settings.enabled}`);
-        console.log(`   - autoRegisterTime: ${settings.autoRegisterTime}`);
-        console.log(`   - currentTime: ${currentTime}`);
-        console.log(`   - shouldRegisterForDay: ${this.shouldRegisterForDay(settings, currentDay)}`);
-        console.log(`   - isTimeToRegister: ${this.isTimeToRegister(settings.autoRegisterTime, currentTime)}`);
-        
-        // Check if current time matches the auto register time (within the same minute)
-        if (this.shouldRegisterForDay(settings, currentDay) && 
-            this.isTimeToRegister(settings.autoRegisterTime, currentTime)) {
-          
-          console.log(`⏰ Time matches for user ${settings.userId}! Checking existing logs...`);
-          
-          // Check if a work log already exists for today
-          const existingLog = await db.select()
-            .from(workLogs)
-            .where(and(
-              eq(workLogs.userId, settings.userId),
-              eq(workLogs.date, currentDate)
-            ))
+        try {
+          console.log(`👤 [SCHEDULER] --- PROCESANDO USUARIO ${settings.userId} ---`);
+
+          // Validar que el usuario existe y es empleado
+          const userCheck = await db.select()
+            .from(autoTimeSettings)
+            .where(eq(autoTimeSettings.userId, settings.userId))
             .limit(1);
 
-          console.log(`📋 User ${settings.userId}: Existing logs for today (${currentDate}): ${existingLog.length}`);
-
-          if (existingLog.length === 0) {
-            console.log(`➕ Creating new work log for user ${settings.userId}...`);
-            // Create new work log
-            await this.createAutoWorkLog(settings, currentDate);
-            console.log(`✅ Created auto work log for user ${settings.userId} on ${currentDate} from ${settings.startTime} to ${settings.endTime} at ${currentTime} Spain time`);
-          } else {
-            console.log(`ℹ️ User ${settings.userId} already has a work log for ${currentDate}, skipping auto creation`);
+          if (userCheck.length === 0) {
+            console.log(`❌ [SCHEDULER] Usuario ${settings.userId} no encontrado - saltando`);
+            continue;
           }
-        } else {
-          console.log(`❌ User ${settings.userId} - conditions not met for registration`);
+
+          console.log(`✅ [SCHEDULER] Usuario ${settings.userId} validado`);
+          console.log(`   - enabled: ${settings.enabled}`);
+          console.log(`   - autoRegisterTime: ${settings.autoRegisterTime}`);
+          console.log(`   - currentTime: ${currentTime}`);
+
+          // PASO 3.1: Verificar día válido
+          const dayValid = this.shouldRegisterForDay(settings, currentDay);
+          console.log(`📅 [SCHEDULER] Día válido: ${dayValid} (día ${currentDay})`);
+
+          // PASO 3.2: Verificar hora válida
+          const timeValid = this.isTimeToRegister(settings.autoRegisterTime, currentTime);
+          console.log(`⏰ [SCHEDULER] Hora válida: ${timeValid}`);
+
+          // PASO 3.3: Decidir si crear registro
+          if (dayValid && timeValid) {
+            console.log(`✅ [SCHEDULER] Condiciones cumplidas para usuario ${settings.userId} - verificando registros existentes...`);
+
+            // PASO 3.4: Verificar registros existentes
+            const existingLog = await db.select()
+              .from(workLogs)
+              .where(and(
+                eq(workLogs.userId, settings.userId),
+                eq(workLogs.date, currentDate)
+              ))
+              .limit(1);
+
+            console.log(`📋 [SCHEDULER] Registros existentes para ${settings.userId} en ${currentDate}: ${existingLog.length}`);
+
+            if (existingLog.length === 0) {
+              console.log(`➕ [SCHEDULER] Creando registro automático para usuario ${settings.userId}...`);
+              await this.createAutoWorkLog(settings, currentDate);
+              console.log(`✅ [SCHEDULER] Registro automático creado exitosamente para usuario ${settings.userId}`);
+            } else {
+              console.log(`ℹ️ [SCHEDULER] Ya existe registro para usuario ${settings.userId} en ${currentDate} - saltando creación`);
+            }
+          } else {
+            console.log(`❌ [SCHEDULER] Condiciones NO cumplidas para usuario ${settings.userId}: día=${dayValid}, hora=${timeValid}`);
+          }
+
+          console.log(`🏁 [SCHEDULER] --- FIN PROCESAMIENTO USUARIO ${settings.userId} ---`);
+        } catch (userError) {
+          console.error(`❌ [SCHEDULER] Error procesando usuario ${settings.userId}:`, userError);
+          // Continuar con el siguiente usuario
         }
       }
+
+      console.log('✅ [SCHEDULER] === PROCESAMIENTO COMPLETADO EXITOSAMENTE ===');
+
     } catch (error) {
-      console.error('❌ Error processing scheduled time registrations:', error);
+      console.error('❌ [SCHEDULER] Error general en processScheduledRegistrations:', error);
+    } finally {
+      this.isProcessing = false;
+      const duration = Date.now() - startTime;
+      console.log(`⏱️ [SCHEDULER] Procesamiento finalizado en ${duration}ms`);
     }
   }
 
