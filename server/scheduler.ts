@@ -91,8 +91,10 @@ export class AutoTimeScheduler {
   }
 
   isTimeToRegister(autoRegisterTime: string, currentTime: string): boolean {
-    // Check if current time matches the scheduled time (within the same minute)
-    return autoRegisterTime === currentTime;
+    // Convertir time a string para comparación segura
+    const registerTimeStr = autoRegisterTime.toString().slice(0, 5); // HH:mm format
+    const currentTimeStr = currentTime.slice(0, 5); // HH:mm format
+    return registerTimeStr === currentTimeStr;
   }
 
   async createAutoWorkLog(settings: AutoTimeSettings, date: string) {

@@ -152,9 +152,9 @@ SELECT
     ats.auto_register_time,
     TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'HH24:MI') as hora_actual_espana,
     CASE 
-        WHEN ats.auto_register_time = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'HH24:MI') 
+        WHEN ats.auto_register_time::text = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'HH24:MI') 
         THEN '✅ DEBERÍA EJECUTARSE AHORA'
-        ELSE CONCAT('❌ Hora configurada: ', ats.auto_register_time, ', Actual: ', TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'HH24:MI'))
+        ELSE CONCAT('❌ Hora configurada: ', ats.auto_register_time::text, ', Actual: ', TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'HH24:MI'))
     END as estado_hora,
     CASE 
         WHEN EXTRACT(DOW FROM CURRENT_DATE) BETWEEN 1 AND 5 AND ats.enabled = true
@@ -163,7 +163,7 @@ SELECT
     END as estado_dia
 FROM auto_time_settings ats
 JOIN users u ON ats.user_id = u.id
-WHERE ats.user_id = 1;
+WHERE ats.user_id = 3;
 
 -- =====================================================
 -- RESUMEN FINAL
@@ -181,13 +181,13 @@ SELECT 'CONFIGURANDO EJECUCIÓN INMEDIATA' as paso;
 
 -- Actualizar para que se ejecute en el próximo minuto
 UPDATE auto_time_settings 
-SET auto_register_time = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid' + INTERVAL '1 minute', 'HH24:MI')
+SET auto_register_time = (TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid' + INTERVAL '1 minute', 'HH24:MI'))::time
 WHERE user_id = 1;
 
 -- Verificar actualización
 SELECT 
     'CONFIGURADO PARA EJECUTAR EN:' as mensaje,
     TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid' + INTERVAL '1 minute', 'HH24:MI') as proxima_ejecucion,
-    auto_register_time as hora_configurada
+    auto_register_time::text as hora_configurada
 FROM auto_time_settings 
 WHERE user_id = 1;
