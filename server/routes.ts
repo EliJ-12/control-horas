@@ -12,6 +12,8 @@ import {
 import { forceCreateTestRecord } from "./scheduler.js";
 import { createClient } from '@supabase/supabase-js';
 import { db } from "./db.js";
+import { z } from "zod";
+import { api } from "../shared/routes.js";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -152,7 +154,8 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      console.error("Error creating user:", err);
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -210,7 +213,8 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      console.error("Error creating work log:", err);
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -302,7 +306,8 @@ export async function registerRoutes(
        if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      console.error("Error creating absence:", err);
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 
@@ -428,7 +433,8 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      console.error("Error saving auto time settings:", err);
+      return res.status(500).json({ message: "Internal server error" });
     }
   });
 
