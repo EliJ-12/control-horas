@@ -7,10 +7,23 @@ export class AutoTimeScheduler {
   private interval: NodeJS.Timeout | null = null;
 
   constructor() {
+    console.log('🚀 Initializing AutoTimeScheduler...');
+    this.testDatabaseConnection();
     // Run every minute to check for scheduled registrations
     this.interval = setInterval(() => {
       this.processScheduledRegistrations();
     }, 60000); // Check every minute
+    console.log('⏰ AutoTimeScheduler started, checking every minute');
+  }
+
+  async testDatabaseConnection() {
+    try {
+      console.log('🔍 Testing database connection...');
+      const settings = await db.select().from(autoTimeSettings).limit(1);
+      console.log(`✅ Database connection OK, found ${settings.length} settings`);
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+    }
   }
 
   async processScheduledRegistrations() {
@@ -124,6 +137,25 @@ export class AutoTimeScheduler {
       this.interval = null;
     }
   }
+
+  // Función para forzar creación de registro (para pruebas)
+  async forceCreateTestRecord(userId: number) {
+    console.log(`🧪 Forcing test record creation for user ${userId}`);
+    
+    const settings = await db.select()
+      .from(autoTimeSettings)
+      .where(eq(autoTimeSettings.userId, userId))
+      .limit(1);
+    
+    if (settings.length === 0) {
+      console.error(`❌ No auto time settings found for user ${userId}`);
+      return;
+    }
+    
+    const currentDate = new Date().toISOString().split('T')[0];
+    await this.createAutoWorkLog(settings[0], currentDate);
+    console.log(`✅ Test record created for user ${userId}`);
+  }
 }
 
 // Global scheduler instance
@@ -133,6 +165,19 @@ export function startAutoTimeScheduler() {
   if (!scheduler) {
     scheduler = new AutoTimeScheduler();
     console.log('Auto time scheduler started');
+  }
+  return scheduler;
+}
+
+export function getScheduler() {
+  return scheduler;
+}
+
+export function forceCreateTestRecord(userId: number) {
+  if (scheduler) {
+    return scheduler.forceCreateTestRecord(userId);
+  } else {
+    console.error('Scheduler not initialized');
   }
 }
 

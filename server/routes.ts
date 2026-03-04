@@ -4,14 +4,14 @@ import multer from "multer";
 import path from "path";
 import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
-import { api } from "../shared/routes.js";
-import { z } from "zod";
-import { insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema } from "../shared/schema.js";
+import { eq, and, desc, sql, ilike, gte, lte } from "drizzle-orm";
+import { 
+  users, workLogs, absences, autoTimeSettings, 
+  insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema 
+} from "../shared/schema.js";
+import { forceCreateTestRecord } from "./scheduler.js";
 import { createClient } from '@supabase/supabase-js';
-
 import { db } from "./db.js";
-import { users, workLogs, autoTimeSettings } from "../shared/schema.js";
-import { eq, and, gte, lte } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -460,6 +460,22 @@ export async function registerRoutes(
     .leftJoin(users, eq(autoTimeSettings.userId, users.id));
 
     res.json(settings);
+  });
+
+  // Test route to force create auto record
+  app.post("/api/test-auto-record", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      
+      await forceCreateTestRecord(userId);
+      res.json({ success: true, message: `Test record created for user ${userId}` });
+    } catch (error) {
+      console.error("Error creating test record:", error);
+      res.status(500).json({ error: "Failed to create test record" });
+    }
   });
 
   return httpServer;
