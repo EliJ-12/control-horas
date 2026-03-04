@@ -1,5 +1,5 @@
 import { db } from "../server/db.js";
-import { autoTimeSettings, workLogs } from "../shared/schema.js";
+import { autoTimeSettings, workLogs, users } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import type { AutoTimeSettings } from "../shared/schema.js";
 
@@ -81,12 +81,15 @@ export class AutoTimeScheduler {
 
           // Validar que el usuario existe y es empleado
           const userCheck = await db.select()
-            .from(autoTimeSettings)
-            .where(eq(autoTimeSettings.userId, settings.userId))
+            .from(users)
+            .where(and(
+              eq(users.id, settings.userId),
+              eq(users.role, 'employee')
+            ))
             .limit(1);
 
           if (userCheck.length === 0) {
-            console.log(`❌ [SCHEDULER] Usuario ${settings.userId} no encontrado - saltando`);
+            console.log(`❌ [SCHEDULER] Usuario ${settings.userId} no encontrado o no es empleado - saltando`);
             continue;
           }
 
