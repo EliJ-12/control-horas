@@ -17,12 +17,15 @@ export class AutoTimeScheduler {
     try {
       console.log('Processing scheduled time registrations...');
       
+      // Usar zona horaria de España (Europe/Madrid)
       const now = new Date();
-      const currentTime = now.toTimeString().slice(0, 5); // HH:mm format
-      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-      const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const spainTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Madrid" }));
+      const currentTime = spainTime.toTimeString().slice(0, 5); // HH:mm format
+      const currentDay = spainTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+      const currentDate = spainTime.toISOString().split('T')[0]; // YYYY-MM-DD
 
-      console.log(`Current time: ${currentTime}, Day: ${currentDay}, Date: ${currentDate}`);
+      console.log(`Spain time: ${currentTime}, Day: ${currentDay}, Date: ${currentDate}`);
+      console.log(`UTC time: ${now.toTimeString().slice(0, 5)}, UTC Day: ${now.getDay()}`);
 
       // Get all enabled auto time settings
       const allSettings = await db.select().from(autoTimeSettings).where(eq(autoTimeSettings.enabled, true));
@@ -44,12 +47,12 @@ export class AutoTimeScheduler {
             ))
             .limit(1);
 
-          console.log(`User ${settings.userId}: Existing logs for today: ${existingLog.length}`);
+          console.log(`User ${settings.userId}: Existing logs for today (${currentDate}): ${existingLog.length}`);
 
           if (existingLog.length === 0) {
             // Create new work log
             await this.createAutoWorkLog(settings, currentDate);
-            console.log(`✅ Created auto work log for user ${settings.userId} on ${currentDate} from ${settings.startTime} to ${settings.endTime}`);
+            console.log(`✅ Created auto work log for user ${settings.userId} on ${currentDate} from ${settings.startTime} to ${settings.endTime} at ${currentTime} Spain time`);
           } else {
             console.log(`ℹ️ User ${settings.userId} already has a work log for ${currentDate}, skipping auto creation`);
           }
