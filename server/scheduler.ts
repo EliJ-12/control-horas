@@ -112,14 +112,28 @@ export class AutoTimeScheduler {
   }
 
   isTimeToRegister(autoRegisterTime: string, currentTime: string): boolean {
-    // CORREGIDO: Comparar usando formato consistente
-    // Convertir ambos a formato hh:mm:ss para comparación exacta
-    const registerTimeFull = autoRegisterTime.toString().padEnd(8, '00'); // hh:mm:ss
-    const currentFullTime = currentTime + ':00'; // hh:mm -> hh:mm:ss
-    
-    console.log(`⏰ Time comparison: registerTime="${registerTimeFull}" vs currentTime="${currentFullTime}"`);
-    
-    return registerTimeFull === currentFullTime;
+    // CORREGIDO: Comparar normalizando ambos tiempos a formato hh:mm
+    // El autoRegisterTime viene de la BD como TIME y puede tener formato hh:mm:ss o hh:mm
+    // El currentTime viene del cálculo como hh:mm
+    // Normalizar ambos a hh:mm para comparación correcta
+
+    let registerTimeNormalized: string;
+
+    // Si autoRegisterTime tiene formato hh:mm:ss, tomar solo hh:mm
+    if (autoRegisterTime.length === 8 && autoRegisterTime.includes(':')) {
+      registerTimeNormalized = autoRegisterTime.substring(0, 5); // hh:mm
+    } else {
+      registerTimeNormalized = autoRegisterTime.substring(0, 5); // hh:mm
+    }
+
+    // currentTime ya viene como hh:mm, pero asegurarse
+    const currentTimeNormalized = currentTime.substring(0, 5); // hh:mm
+
+    const timeMatches = registerTimeNormalized === currentTimeNormalized;
+
+    console.log(`⏰ Time comparison: registerTime="${registerTimeNormalized}" vs currentTime="${currentTimeNormalized}" → ${timeMatches}`);
+
+    return timeMatches;
   }
 
   async createAutoWorkLog(settings: AutoTimeSettings, date: string) {
