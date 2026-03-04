@@ -1,6 +1,7 @@
 import { serveStatic } from "./static.js";
 import { createApp } from "./app.js";
 import { startAutoTimeScheduler } from "./scheduler.js";
+import { startSimpleAutoTimeScheduler } from "./simple-scheduler.js";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -35,6 +36,9 @@ export function log(message: string, source = "express") {
     },
   );
 
-  // Start the auto time scheduler
-  startAutoTimeScheduler();
+  // Start the auto time scheduler (commented out for testing)
+  // startAutoTimeScheduler();
+  
+  // Start the SIMPLE auto time scheduler for debugging
+  startSimpleAutoTimeScheduler();
 })();
