@@ -2,8 +2,20 @@ import { NextResponse } from 'next/server';
 // Importar el scheduler
 import { startAutoTimeScheduler, getScheduler } from '../../server/scheduler.js';
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // Verificar CRON_SECRET para seguridad
+    const authHeader = request.headers.get('Authorization');
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      console.log("❌ [CRON] Acceso no autorizado - CRON_SECRET inválido");
+      return NextResponse.json({
+        success: false,
+        error: "Unauthorized"
+      }, { status: 401 });
+    }
+
     console.log("🔄 [CRON] Ejecutando scheduler automático desde Vercel cron job...");
 
     // Inicializar scheduler si no está corriendo
