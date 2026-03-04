@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS work_logs (
   end_time TIME NOT NULL,
   total_hours INTEGER NOT NULL, -- in minutes
   type VARCHAR(20) DEFAULT 'work' CHECK (type IN ('work', 'absence')),
+  is_auto_generated BOOLEAN DEFAULT FALSE, -- NEW: Identify auto-generated records
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
