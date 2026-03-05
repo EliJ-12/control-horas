@@ -28,7 +28,7 @@ BEGIN
     )
     SELECT DISTINCT
         ats.user_id,
-        spain_date,
+        spain_date::date,  -- ✅ Castear a date para la columna date
         ats.start_time,
         ats.end_time,
         EXTRACT(EPOCH FROM (ats.end_time::time - ats.start_time::time)) / 60, -- minutos
@@ -57,7 +57,7 @@ BEGIN
     AND NOT EXISTS (
         SELECT 1 FROM work_logs wl
         WHERE wl.user_id = ats.user_id
-        AND wl.date::date = spain_date::date  -- ✅ Comparación correcta
+        AND wl.date = spain_date::date  -- ✅ Comparación correcta con columna date
     );
 
     GET DIAGNOSTICS records_created = ROW_COUNT;
