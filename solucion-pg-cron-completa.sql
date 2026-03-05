@@ -114,13 +114,13 @@ RETURNS TABLE (
 DECLARE
     spain_now timestamptz;
     spain_time_str varchar(5);
-    spain_date date;
+    spain_date text;
     spain_dow integer;
 BEGIN
     -- Calcular tiempo actual en España
     spain_now := NOW() AT TIME ZONE 'Europe/Madrid';
     spain_time_str := TO_CHAR(spain_now, 'HH24:MI');
-    spain_date := spain_now::date;
+    spain_date := TO_CHAR(spain_now, 'YYYY-MM-DD');
     spain_dow := EXTRACT(DOW FROM spain_now);
 
     RETURN QUERY
