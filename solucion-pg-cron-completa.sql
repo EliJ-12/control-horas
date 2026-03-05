@@ -125,7 +125,7 @@ BEGIN
     RETURN QUERY
     SELECT
         ats.user_id,
-        u.name,
+        u.full_name,
         TO_CHAR(ats.auto_register_time, 'HH24:MI') as config_time,
         spain_time_str as hora_actual,
         CASE spain_dow
