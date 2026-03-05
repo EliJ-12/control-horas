@@ -19,11 +19,9 @@ SELECT
     jobname,
     schedule,
     command,
-    active,
-    created_at
+    active
 FROM cron.job
-WHERE jobname LIKE '%scheduler%'
-ORDER BY created_at DESC;
+WHERE jobname LIKE '%scheduler%';
 
 -- PASO 3: Verificar configuraciones de empleados
 SELECT
