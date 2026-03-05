@@ -10,8 +10,7 @@ BEGIN
     ) THEN
         ALTER TABLE work_logs 
         ADD CONSTRAINT unique_user_date_auto 
-        UNIQUE (user_id, date) 
-        DEFERRABLE INITIALLY DEFERRED;
+        UNIQUE (user_id, date);  -- Sin DEFERRABLE para compatibilidad con ON CONFLICT
     END IF;
 END $$;
 
