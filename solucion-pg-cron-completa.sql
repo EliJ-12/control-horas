@@ -99,6 +99,7 @@ FROM cron.job
 WHERE jobname = 'auto-time-scheduler';
 
 -- PASO 6: Función de prueba manual
+DROP FUNCTION IF EXISTS test_auto_scheduler();
 CREATE OR REPLACE FUNCTION test_auto_scheduler()
 RETURNS TABLE (
     user_id integer,
