@@ -4,16 +4,6 @@ DROP FUNCTION IF EXISTS execute_auto_time_scheduler();
 -- Agregar constraint único si no existe (previene duplicados)
 DO $$
 BEGIN
-    -- Eliminar constraint si existe y es DEFERRABLE (incompatible con ON CONFLICT)
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint 
-        WHERE conname = 'unique_user_date_auto' 
-        AND condeferrable = true
-    ) THEN
-        ALTER TABLE work_logs DROP CONSTRAINT unique_user_date_auto;
-    END IF;
-    
-    -- Crear constraint único no deferrable si no existe
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint 
         WHERE conname = 'unique_user_date_auto'
@@ -32,20 +22,20 @@ AS $$
 DECLARE
     spain_now timestamptz;
     spain_time_str text;
-    spain_date date;  -- Cambiar a date directamente
+    spain_date date;
     spain_dow integer;
     records_created integer := 0;
 BEGIN
     -- Calcular tiempo actual en España
     spain_now := NOW() AT TIME ZONE 'Europe/Madrid';
     spain_time_str := TO_CHAR(spain_now, 'HH24:MI');
-    spain_date := spain_now::date;  -- Fecha como tipo date directamente
+    spain_date := spain_now::date;
     spain_dow := EXTRACT(DOW FROM spain_now);
 
     RAISE NOTICE 'pg_cron: Ejecutando scheduler - Hora España: %, Fecha: %, Día semana: %',
         spain_time_str, spain_date, spain_dow;
 
-    -- Insertar registros automáticos con ON CONFLICT DO NOTHING
+    -- Insertar registros automáticos (sin ON CONFLICT para evitar problemas)
     INSERT INTO work_logs (
         user_id, date, start_time, end_time, total_hours, type, is_auto_generated, created_at, updated_at
     )
@@ -76,7 +66,12 @@ BEGIN
     END = true
     -- Verificar hora exacta
     AND TO_CHAR(ats.auto_register_time, 'HH24:MI') = spain_time_str
-    ON CONFLICT (user_id, date) DO NOTHING;  -- Evitar duplicados
+    -- Solo si no existe registro para hoy (verificación manual)
+    AND NOT EXISTS (
+        SELECT 1 FROM work_logs wl
+        WHERE wl.user_id = ats.user_id
+        AND wl.date = spain_date
+    );
 
     GET DIAGNOSTICS records_created = ROW_COUNT;
 
