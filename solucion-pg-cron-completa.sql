@@ -102,9 +102,9 @@ WHERE jobname = 'auto-time-scheduler';
 CREATE OR REPLACE FUNCTION test_auto_scheduler()
 RETURNS TABLE (
     user_id integer,
-    user_name text,
-    config_time text,
-    hora_actual text,
+    user_name varchar(255),
+    config_time varchar(5),
+    hora_actual varchar(5),
     day_match boolean,
     time_match boolean,
     existing_record boolean,
@@ -112,7 +112,7 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
     spain_now timestamptz;
-    spain_time_str text;
+    spain_time_str varchar(5);
     spain_date date;
     spain_dow integer;
 BEGIN
@@ -125,9 +125,9 @@ BEGIN
     RETURN QUERY
     SELECT
         ats.user_id,
-        u.full_name,
-        TO_CHAR(ats.auto_register_time, 'HH24:MI') as config_time,
-        spain_time_str as hora_actual,
+        u.full_name::varchar(255),
+        TO_CHAR(ats.auto_register_time, 'HH24:MI'),
+        spain_time_str,
         CASE spain_dow
             WHEN 0 THEN ats.sunday
             WHEN 1 THEN ats.monday
@@ -142,7 +142,7 @@ BEGIN
         EXISTS (
             SELECT 1 FROM work_logs wl
             WHERE wl.user_id = ats.user_id
-            AND wl.date = spain_date
+            AND wl.date = spain_date::text
         ) as existing_record,
         CASE WHEN
             CASE spain_dow
@@ -159,11 +159,11 @@ BEGIN
             AND NOT EXISTS (
                 SELECT 1 FROM work_logs wl
                 WHERE wl.user_id = ats.user_id
-                AND wl.date = spain_date
+                AND wl.date = spain_date::text
             )
         THEN true ELSE false END as will_create
     FROM auto_time_settings ats
-    JOIN users u ON ats.user_id::text = u.id::text
+    JOIN users u ON ats.user_id = u.id
     WHERE ats.enabled = true
     AND u.role = 'employee'
     ORDER BY ats.user_id;
