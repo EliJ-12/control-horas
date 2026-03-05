@@ -143,7 +143,7 @@ BEGIN
         EXISTS (
             SELECT 1 FROM work_logs wl
             WHERE wl.user_id = ats.user_id
-            AND wl.date = TO_CHAR(spain_date, 'YYYY-MM-DD')
+            AND wl.date = spain_date::text
         ) as existing_record,
         CASE WHEN
             CASE spain_dow
@@ -160,7 +160,7 @@ BEGIN
             AND NOT EXISTS (
                 SELECT 1 FROM work_logs wl
                 WHERE wl.user_id = ats.user_id
-                AND wl.date = TO_CHAR(spain_date, 'YYYY-MM-DD')
+                AND wl.date = spain_date::text
             )
         THEN true ELSE false END as will_create
     FROM auto_time_settings ats
