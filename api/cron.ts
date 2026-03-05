@@ -1,19 +1,26 @@
-import { NextResponse } from 'next/server';
-// Importar el scheduler
-import { startAutoTimeScheduler, getScheduler } from '../../server/scheduler.js';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { startAutoTimeScheduler } from "../server/scheduler.js";
 
-export async function GET(request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Solo permitir método GET
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      success: false,
+      error: "Method not allowed"
+    });
+  }
+
   try {
     // Verificar CRON_SECRET para seguridad
-    const authHeader = request.headers.get('Authorization');
+    const authHeader = req.headers.authorization;
     const cronSecret = process.env.CRON_SECRET;
 
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       console.log("❌ [CRON] Acceso no autorizado - CRON_SECRET inválido");
-      return NextResponse.json({
+      return res.status(401).json({
         success: false,
         error: "Unauthorized"
-      }, { status: 401 });
+      });
     }
 
     console.log("🔄 [CRON] Ejecutando scheduler automático desde Vercel cron job...");
@@ -27,7 +34,7 @@ export async function GET(request) {
 
       console.log("✅ [CRON] Scheduler ejecutado exitosamente desde Vercel cron");
 
-      return NextResponse.json({
+      return res.status(200).json({
         success: true,
         message: "Scheduler ejecutado exitosamente",
         timestamp: new Date().toISOString(),
@@ -40,11 +47,11 @@ export async function GET(request) {
 
   } catch (error) {
     console.error("❌ [CRON] Error ejecutando scheduler desde Vercel:", error);
-    return NextResponse.json({
+    return res.status(500).json({
       success: false,
       error: "Error ejecutando scheduler",
       details: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
-    }, { status: 500 });
+    });
   }
 }
