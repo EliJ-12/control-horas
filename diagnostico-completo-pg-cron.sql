@@ -71,7 +71,7 @@ SELECT
     EXISTS (
         SELECT 1 FROM work_logs wl
         WHERE wl.user_id = ats.user_id
-        AND wl.date = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'YYYY-MM-DD')
+        AND wl.date = TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')
     ) as ya_existe_registro,
     CASE WHEN
         ats.enabled = true
@@ -89,7 +89,7 @@ SELECT
         AND NOT EXISTS (
             SELECT 1 FROM work_logs wl
             WHERE wl.user_id = ats.user_id
-            AND wl.date = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'YYYY-MM-DD')
+            AND wl.date = TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')
         )
     THEN '✅ SE CREARÁ REGISTRO' ELSE '❌ NO SE CREARÁ' END as status
 FROM auto_time_settings ats
