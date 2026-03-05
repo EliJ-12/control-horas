@@ -133,19 +133,10 @@ FROM pg_policies
 WHERE tablename = 'auto_time_settings'
 ORDER BY policyname;
 
--- PASO 9: Ver logs de cron (últimas 24 horas)
-SELECT
-    '=== LOGS DE CRON ===' as check_type,
-    jobname,
-    status,
-    return_message,
-    start_time,
-    end_time
-FROM cron.job_run_details
-WHERE jobname LIKE '%scheduler%'
-AND start_time > NOW() - INTERVAL '24 hours'
-ORDER BY start_time DESC
-LIMIT 10;
+-- PASO 9: Verificar logs de cron (simplificado - puede no estar disponible)
+-- SELECT '=== LOGS DE CRON ===' as check_type;
+-- Nota: Los logs de pg_cron pueden no estar disponibles en Supabase
+-- Si el cron está ejecutándose, verás registros automáticos en work_logs
 
 -- PASO 10: Probar función manualmente (descomentar para ejecutar)
 -- SELECT execute_auto_time_scheduler();
