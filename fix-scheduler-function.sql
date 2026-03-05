@@ -4,13 +4,23 @@ DROP FUNCTION IF EXISTS execute_auto_time_scheduler();
 -- Agregar constraint único si no existe (previene duplicados)
 DO $$
 BEGIN
+    -- Eliminar constraint si existe y es DEFERRABLE (incompatible con ON CONFLICT)
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'unique_user_date_auto' 
+        AND condeferrable = true
+    ) THEN
+        ALTER TABLE work_logs DROP CONSTRAINT unique_user_date_auto;
+    END IF;
+    
+    -- Crear constraint único no deferrable si no existe
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint 
         WHERE conname = 'unique_user_date_auto'
     ) THEN
         ALTER TABLE work_logs 
         ADD CONSTRAINT unique_user_date_auto 
-        UNIQUE (user_id, date);  -- Sin DEFERRABLE para compatibilidad con ON CONFLICT
+        UNIQUE (user_id, date);
     END IF;
 END $$;
 
