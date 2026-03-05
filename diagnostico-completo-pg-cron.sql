@@ -110,7 +110,7 @@ SELECT
     wl.created_at
 FROM work_logs wl
 JOIN users u ON wl.user_id = u.id
-WHERE wl.date = TO_CHAR(NOW() AT TIME ZONE 'Europe/Madrid', 'YYYY-MM-DD')
+WHERE wl.date = TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')
 ORDER BY wl.created_at DESC;
 
 -- PASO 7: Verificar RLS en auto_time_settings
