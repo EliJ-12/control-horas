@@ -91,4 +91,58 @@
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600;
   }
+
+  /* PWA Styles */
+  .standalone-mode {
+    /* Estilos específicos cuando la app está en modo standalone */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .mobile-optimized {
+      @apply text-sm;
+    }
+    
+    .mobile-button {
+      @apply min-h-[44px] min-w-[44px]; /* Tamaño mínimo para accesibilidad */
+    }
+    
+    .mobile-card {
+      @apply rounded-lg shadow-md;
+    }
+    
+    .mobile-container {
+      @apply px-4 py-3;
+    }
+  }
+
+  /* iPhone Notch Support */
+  @supports (padding: max(0px)) {
+    .safe-area {
+      padding-top: max(1rem, env(safe-area-inset-top));
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+  }
+
+  /* PWA Install Button Animations */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .install-button-animate {
+    animation: slideUp 0.3s ease-out;
+  }
 }
