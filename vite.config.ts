@@ -30,6 +30,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'favicon.png') {
+            return 'favicon.png';
+          }
+          return assetInfo.name || 'assets/[name].[ext]';
+        },
+      },
+    },
   },
   server: {
     fs: {
