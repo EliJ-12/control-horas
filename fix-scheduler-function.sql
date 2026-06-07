@@ -1,4 +1,4 @@
--- CORRECCIÓN FINAL: Recrear función execute_auto_time_scheduler con soporte para múltiples configuraciones por empleado
+-- CORRECCIÓN FINAL: Recrear función execute_auto_time_scheduler con tipos correctos y sin duplicados
 DROP FUNCTION IF EXISTS execute_auto_time_scheduler();
 
 -- Agregar constraint único si no existe (previene duplicados)
@@ -35,12 +35,11 @@ BEGIN
     RAISE NOTICE 'pg_cron: Ejecutando scheduler - Hora España: %, Fecha: %, Día semana: %',
         spain_time_str, spain_date, spain_dow;
 
-    -- Insertar registros automáticos con soporte para múltiples configuraciones
-    -- Se usa la configuración de mayor prioridad si hay conflictos
+    -- Insertar registros automáticos (sin ON CONFLICT para evitar problemas)
     INSERT INTO work_logs (
         user_id, date, start_time, end_time, total_hours, type, is_auto_generated, created_at, updated_at
     )
-    SELECT DISTINCT ON (ats.user_id)
+    SELECT DISTINCT
         ats.user_id,
         spain_date,
         ats.start_time,
@@ -72,9 +71,7 @@ BEGIN
         SELECT 1 FROM work_logs wl
         WHERE wl.user_id = ats.user_id
         AND wl.date = spain_date
-    )
-    -- Ordenar por prioridad descendente para usar la configuración más importante
-    ORDER BY ats.user_id, ats.priority DESC, ats.id;
+    );
 
     GET DIAGNOSTICS records_created = ROW_COUNT;
 

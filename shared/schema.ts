@@ -41,8 +41,7 @@ export const absences = pgTable("absences", {
 
 export const autoTimeSettings = pgTable("auto_time_settings", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(), // Eliminado unique() para permitir múltiples configuraciones
-  name: text("name").notNull(), // Nombre para identificar la configuración (ej: "Horario Lunes-Jueves", "Horario Viernes")
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
   enabled: boolean("enabled").default(false),
   monday: boolean("monday").default(false),
   tuesday: boolean("tuesday").default(false),
@@ -54,7 +53,6 @@ export const autoTimeSettings = pgTable("auto_time_settings", {
   startTime: text("start_time").notNull(), // HH:mm format
   endTime: text("end_time").notNull(), // HH:mm format
   autoRegisterTime: text("auto_register_time").notNull(), // HH:mm format when to auto-create the record
-  priority: integer("priority").default(0), // Prioridad para resolver conflictos (mayor número = mayor prioridad)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

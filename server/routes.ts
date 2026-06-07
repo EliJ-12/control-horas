@@ -377,7 +377,7 @@ export async function registerRoutes(
 
   // === AUTO TIME SETTINGS ROUTES ===
 
-  // Get all auto time settings for current user (multiple configurations support)
+  // Get auto time settings for current user
   app.get("/api/auto-time-settings", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -387,12 +387,12 @@ export async function registerRoutes(
     const settings = await db.select()
       .from(autoTimeSettings)
       .where(eq(autoTimeSettings.userId, userId))
-      .orderBy(desc(autoTimeSettings.priority), desc(autoTimeSettings.createdAt));
+      .limit(1);
 
-    res.json(settings);
+    res.json(settings[0] || null);
   });
 
-  // Create new auto time settings for current user
+  // Create or update auto time settings for current user
   app.post("/api/auto-time-settings", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -405,93 +405,35 @@ export async function registerRoutes(
         userId
       });
 
-      // Create new settings (no longer updates existing)
-      const result = await db.insert(autoTimeSettings)
-        .values(validatedData)
-        .returning();
+      // Check if settings already exist for this user
+      const existing = await db.select()
+        .from(autoTimeSettings)
+        .where(eq(autoTimeSettings.userId, userId))
+        .limit(1);
+
+      let result;
+      if (existing.length > 0) {
+        // Update existing settings
+        result = await db.update(autoTimeSettings)
+          .set({
+            ...validatedData,
+            updatedAt: new Date()
+          })
+          .where(eq(autoTimeSettings.userId, userId))
+          .returning();
+      } else {
+        // Create new settings
+        result = await db.insert(autoTimeSettings)
+          .values(validatedData)
+          .returning();
+      }
 
       res.json(result[0]);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      console.error("Error creating auto time settings:", err);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Update specific auto time settings
-  app.put("/api/auto-time-settings/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const id = Number(req.params.id);
-      const userId = (req.user as any).id;
-      
-      // Check if settings exist and belong to user
-      const existing = await db.select()
-        .from(autoTimeSettings)
-        .where(eq(autoTimeSettings.id, id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        return res.status(404).json({ message: "Not found" });
-      }
-
-      if (existing[0].userId !== userId && (req.user as any).role !== 'admin') {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      const validatedData = insertAutoTimeSettingsSchema.partial().parse(req.body);
-      
-      const result = await db.update(autoTimeSettings)
-        .set({
-          ...validatedData,
-          updatedAt: new Date()
-        })
-        .where(eq(autoTimeSettings.id, id))
-        .returning();
-
-      res.json(result[0]);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
-      console.error("Error updating auto time settings:", err);
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Delete specific auto time settings
-  app.delete("/api/auto-time-settings/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    try {
-      const id = Number(req.params.id);
-      const userId = (req.user as any).id;
-      
-      // Check if settings exist and belong to user
-      const existing = await db.select()
-        .from(autoTimeSettings)
-        .where(eq(autoTimeSettings.id, id))
-        .limit(1);
-
-      if (existing.length === 0) {
-        return res.status(404).json({ message: "Not found" });
-      }
-
-      if (existing[0].userId !== userId && (req.user as any).role !== 'admin') {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      await db.delete(autoTimeSettings).where(eq(autoTimeSettings.id, id));
-      res.json({ message: "Deleted successfully" });
-    } catch (err) {
-      console.error("Error deleting auto time settings:", err);
+      console.error("Error saving auto time settings:", err);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -505,9 +447,7 @@ export async function registerRoutes(
     const settings = await db.select({
       id: autoTimeSettings.id,
       userId: autoTimeSettings.userId,
-      name: autoTimeSettings.name,
       enabled: autoTimeSettings.enabled,
-      priority: autoTimeSettings.priority,
       monday: autoTimeSettings.monday,
       tuesday: autoTimeSettings.tuesday,
       wednesday: autoTimeSettings.wednesday,
@@ -523,8 +463,7 @@ export async function registerRoutes(
       userFullName: users.fullName
     })
     .from(autoTimeSettings)
-    .leftJoin(users, eq(autoTimeSettings.userId, users.id))
-    .orderBy(desc(autoTimeSettings.priority), desc(autoTimeSettings.createdAt));
+    .leftJoin(users, eq(autoTimeSettings.userId, users.id));
 
     res.json(settings);
   });
