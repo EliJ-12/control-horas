@@ -134,7 +134,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/auto-time-settings',
       responses: {
-        200: z.custom<typeof autoTimeSettings.$inferSelect>().nullable(),
+        200: z.array(z.custom<typeof autoTimeSettings.$inferSelect>()),
         401: errorSchemas.unauthorized,
       },
     },
@@ -145,6 +145,26 @@ export const api = {
       responses: {
         200: z.custom<typeof autoTimeSettings.$inferSelect>(),
         400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/auto-time-settings/:id',
+      input: insertAutoTimeSettingsSchema.partial(),
+      responses: {
+        200: z.custom<typeof autoTimeSettings.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+        401: errorSchemas.unauthorized,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/auto-time-settings/:id',
+      responses: {
+        200: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
         401: errorSchemas.unauthorized,
       },
     },
