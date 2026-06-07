@@ -26,7 +26,10 @@ export default function AutoTimeSettings() {
     sunday: false,
     startTime: "09:00",
     endTime: "17:00",
-    autoRegisterTime: "17:05"
+    autoRegisterTime: "17:05",
+    startTime2: "",
+    endTime2: "",
+    autoRegisterTime2: ""
   });
 
   // Update form data when settings are loaded
@@ -42,7 +45,10 @@ export default function AutoTimeSettings() {
       sunday: settings.sunday || false,
       startTime: settings.startTime,
       endTime: settings.endTime,
-      autoRegisterTime: settings.autoRegisterTime
+      autoRegisterTime: settings.autoRegisterTime,
+      startTime2: settings.startTime2 || "",
+      endTime2: settings.endTime2 || "",
+      autoRegisterTime2: settings.autoRegisterTime2 || ""
     });
   }
 
@@ -67,13 +73,24 @@ export default function AutoTimeSettings() {
 
     // Check if at least one day is selected
     const hasSelectedDay = Object.keys(formData)
-      .filter(key => key !== 'enabled' && key !== 'startTime' && key !== 'endTime' && key !== 'autoRegisterTime')
+      .filter(key => key !== 'enabled' && key !== 'startTime' && key !== 'endTime' && key !== 'autoRegisterTime' && key !== 'startTime2' && key !== 'endTime2' && key !== 'autoRegisterTime2')
       .some(key => formData[key as keyof typeof formData] as boolean);
 
     if (!hasSelectedDay) {
       toast({
         title: "Días Requeridos",
         description: "Selecciona al menos un día de la semana para el registro automático.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate that if second register times are set, all three must be set
+    const hasSecondRegister = formData.startTime2 || formData.endTime2 || formData.autoRegisterTime2;
+    if (hasSecondRegister && (!formData.startTime2 || !formData.endTime2 || !formData.autoRegisterTime2)) {
+      toast({
+        title: "Configuración Incompleta",
+        description: "Si configuras un segundo registro, debes completar todos los campos (hora inicio, hora fin, hora registro).",
         variant: "destructive"
       });
       return;
@@ -184,7 +201,7 @@ export default function AutoTimeSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startTime">Hora de inicio</Label>
+                <Label htmlFor="startTime">Hora de inicio (1er registro)</Label>
                 <Input
                   id="startTime"
                   type="time"
@@ -195,7 +212,7 @@ export default function AutoTimeSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime">Hora de fin</Label>
+                <Label htmlFor="endTime">Hora de fin (1er registro)</Label>
                 <Input
                   id="endTime"
                   type="time"
@@ -206,12 +223,47 @@ export default function AutoTimeSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="autoRegisterTime">Hora de registro automático</Label>
+                <Label htmlFor="autoRegisterTime">Hora de registro automático (1er registro)</Label>
                 <Input
                   id="autoRegisterTime"
                   type="time"
                   value={formData.autoRegisterTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, autoRegisterTime: e.target.value }))}
+                  disabled={!!error}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime2">Hora de inicio (2º registro)</Label>
+                <Input
+                  id="startTime2"
+                  type="time"
+                  value={formData.startTime2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, startTime2: e.target.value }))}
+                  disabled={!!error}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime2">Hora de fin (2º registro)</Label>
+                <Input
+                  id="endTime2"
+                  type="time"
+                  value={formData.endTime2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, endTime2: e.target.value }))}
+                  disabled={!!error}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="autoRegisterTime2">Hora de registro automático (2º registro)</Label>
+                <Input
+                  id="autoRegisterTime2"
+                  type="time"
+                  value={formData.autoRegisterTime2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, autoRegisterTime2: e.target.value }))}
                   disabled={!!error}
                 />
               </div>
@@ -223,10 +275,15 @@ export default function AutoTimeSettings() {
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-1">¿Cómo funciona?</p>
                   <p>
-                    El sistema creará automáticamente un registro de horas cada día seleccionado 
-                    a la hora especificada. Por ejemplo, si configuras lunes a viernes de 9:00 a 14:00 
-                    con registro automático a las 14:05, el sistema creará un registro diario 
-                    de lunes a viernes a las 14:05 con esas horas.
+                    El sistema puede crear automáticamente hasta dos registros de horas cada día seleccionado.
+                    El primer registro se creará a la hora especificada en el primer panel, y el segundo registro
+                    (opcional) se creará a la hora especificada en el segundo panel.
+                  </p>
+                  <p className="mt-2">
+                    Por ejemplo, si configuras lunes a viernes con:
+                    - 1er registro: 9:00 a 14:00 con registro automático a las 14:05
+                    - 2º registro: 15:00 a 19:00 con registro automático a las 19:05
+                    El sistema creará dos registros diarios de lunes a viernes a las horas especificadas.
                   </p>
                   <p className="mt-2">
                     Los registros creados automáticamente pueden ser modificados si necesitas 

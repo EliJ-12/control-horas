@@ -102,15 +102,15 @@ export class AutoTimeScheduler {
           const dayValid = this.shouldRegisterForDay(settings, currentDay);
           console.log(`📅 [SCHEDULER] Día válido: ${dayValid} (día ${currentDay})`);
 
-          // PASO 3.2: Verificar hora válida
+          // PASO 3.2: Verificar hora válida para PRIMER registro
           const timeValid = this.isTimeToRegister(settings.autoRegisterTime, currentTime);
-          console.log(`⏰ [SCHEDULER] Hora válida: ${timeValid}`);
+          console.log(`⏰ [SCHEDULER] Hora válida (1er registro): ${timeValid}`);
 
-          // PASO 3.3: Decidir si crear registro
+          // PASO 3.3: Decidir si crear PRIMER registro
           if (dayValid && timeValid) {
-            console.log(`✅ [SCHEDULER] Condiciones cumplidas para usuario ${settings.userId} - verificando registros existentes...`);
+            console.log(`✅ [SCHEDULER] Condiciones cumplidas para usuario ${settings.userId} (1er registro) - verificando registros existentes...`);
 
-            // PASO 3.4: Verificar registros existentes
+            // PASO 3.4: Verificar registros existentes para el primer registro
             const existingLog = await db.select()
               .from(workLogs)
               .where(and(
@@ -122,14 +122,50 @@ export class AutoTimeScheduler {
             console.log(`📋 [SCHEDULER] Registros existentes para ${settings.userId} en ${currentDate}: ${existingLog.length}`);
 
             if (existingLog.length === 0) {
-              console.log(`➕ [SCHEDULER] Creando registro automático para usuario ${settings.userId}...`);
-              await this.createAutoWorkLog(settings, currentDate);
-              console.log(`✅ [SCHEDULER] Registro automático creado exitosamente para usuario ${settings.userId}`);
+              console.log(`➕ [SCHEDULER] Creando registro automático (1er) para usuario ${settings.userId}...`);
+              await this.createAutoWorkLog(settings, currentDate, 1);
+              console.log(`✅ [SCHEDULER] Registro automático (1er) creado exitosamente para usuario ${settings.userId}`);
             } else {
-              console.log(`ℹ️ [SCHEDULER] Ya existe registro para usuario ${settings.userId} en ${currentDate} - saltando creación`);
+              console.log(`ℹ️ [SCHEDULER] Ya existe registro para usuario ${settings.userId} en ${currentDate} - saltando creación (1er registro)`);
             }
           } else {
-            console.log(`❌ [SCHEDULER] Condiciones NO cumplidas para usuario ${settings.userId}: día=${dayValid}, hora=${timeValid}`);
+            console.log(`❌ [SCHEDULER] Condiciones NO cumplidas para usuario ${settings.userId} (1er registro): día=${dayValid}, hora=${timeValid}`);
+          }
+
+          // PASO 3.5: Verificar si hay configuración para SEGUNDO registro
+          if (settings.startTime2 && settings.endTime2 && settings.autoRegisterTime2) {
+            console.log(`🔄 [SCHEDULER] Verificando SEGUNDO registro para usuario ${settings.userId}...`);
+            
+            const timeValid2 = this.isTimeToRegister(settings.autoRegisterTime2, currentTime);
+            console.log(`⏰ [SCHEDULER] Hora válida (2º registro): ${timeValid2}`);
+
+            if (dayValid && timeValid2) {
+              console.log(`✅ [SCHEDULER] Condiciones cumplidas para usuario ${settings.userId} (2º registro) - verificando registros existentes...`);
+
+              // Verificar si ya existe un segundo registro para el día
+              const existingLogs = await db.select()
+                .from(workLogs)
+                .where(and(
+                  eq(workLogs.userId, settings.userId),
+                  eq(workLogs.date, currentDate)
+                ))
+                .limit(2);
+
+              console.log(`📋 [SCHEDULER] Registros existentes para ${settings.userId} en ${currentDate}: ${existingLogs.length}`);
+
+              // Solo crear segundo registro si hay menos de 2 registros para el día
+              if (existingLogs.length < 2) {
+                console.log(`➕ [SCHEDULER] Creando registro automático (2º) para usuario ${settings.userId}...`);
+                await this.createAutoWorkLog(settings, currentDate, 2);
+                console.log(`✅ [SCHEDULER] Registro automático (2º) creado exitosamente para usuario ${settings.userId}`);
+              } else {
+                console.log(`ℹ️ [SCHEDULER] Ya existen 2 registros para usuario ${settings.userId} en ${currentDate} - saltando creación (2º registro)`);
+              }
+            } else {
+              console.log(`❌ [SCHEDULER] Condiciones NO cumplidas para usuario ${settings.userId} (2º registro): día=${dayValid}, hora=${timeValid2}`);
+            }
+          } else {
+            console.log(`ℹ️ [SCHEDULER] No hay configuración para segundo registro para usuario ${settings.userId}`);
           }
 
           console.log(`🏁 [SCHEDULER] --- FIN PROCESAMIENTO USUARIO ${settings.userId} ---`);
@@ -189,41 +225,50 @@ export class AutoTimeScheduler {
     return timeMatches;
   }
 
-  async createAutoWorkLog(settings: AutoTimeSettings, date: string) {
-    console.log(`🔧 Creating auto work log for user ${settings.userId} on ${date}`);
+  async createAutoWorkLog(settings: AutoTimeSettings, date: string, registerNumber: 1 | 2 = 1) {
+    console.log(`🔧 Creating auto work log (${registerNumber === 1 ? '1er' : '2º'}) for user ${settings.userId} on ${date}`);
+    
+    // Determinar qué tiempos usar según el número de registro
+    const startTime = registerNumber === 1 ? settings.startTime : settings.startTime2;
+    const endTime = registerNumber === 1 ? settings.endTime : settings.endTime2;
+    
+    if (!startTime || !endTime) {
+      console.warn(`❌ Invalid time range for user ${settings.userId} (${registerNumber === 1 ? '1er' : '2º'} registro): tiempos no configurados`);
+      return;
+    }
     
     // Calculate total hours in minutes
-    const [startHour, startMin] = settings.startTime.split(':').map(Number);
-    const [endHour, endMin] = settings.endTime.split(':').map(Number);
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
     
     const startTotalMinutes = startHour * 60 + startMin;
     const endTotalMinutes = endHour * 60 + endMin;
     const totalMinutes = endTotalMinutes - startTotalMinutes;
 
-    console.log(`⏱️ Time calculation: ${startHour}:${startMin} to ${endHour}:${endMin} = ${totalMinutes} minutes`);
+    console.log(`⏱️ Time calculation (${registerNumber === 1 ? '1er' : '2º'} registro): ${startHour}:${startMin} to ${endHour}:${endMin} = ${totalMinutes} minutes`);
 
     if (totalMinutes <= 0) {
-      console.warn(`❌ Invalid time range for user ${settings.userId}: ${settings.startTime} - ${settings.endTime}`);
+      console.warn(`❌ Invalid time range for user ${settings.userId} (${registerNumber === 1 ? '1er' : '2º'} registro): ${startTime} - ${endTime}`);
       return;
     }
 
     const workLogData = {
       userId: settings.userId,
       date: date,
-      startTime: settings.startTime,
-      endTime: settings.endTime,
+      startTime: startTime,
+      endTime: endTime,
       totalHours: totalMinutes,
       type: 'work' as const,
       isAutoGenerated: true // Mark as auto-generated
     };
 
-    console.log(`📝 Work log data to insert:`, workLogData);
+    console.log(`📝 Work log data to insert (${registerNumber === 1 ? '1er' : '2º'} registro):`, workLogData);
 
     try {
       // Usar db.insert sin .returning() para evitar problemas
       console.log(`💾 Inserting work log into database...`);
       const result = await db.insert(workLogs).values(workLogData);
-      console.log(`✅ Successfully inserted work log for user ${settings.userId}`);
+      console.log(`✅ Successfully inserted work log (${registerNumber === 1 ? '1er' : '2º'} registro) for user ${settings.userId}`);
       
       // Verificar que se insertó consultando directamente
       console.log(`🔍 Verifying insertion...`);
@@ -238,14 +283,14 @@ export class AutoTimeScheduler {
       
       if (verification.length > 0) {
         console.log(`✅ Verified work log exists in database with ID: ${verification[0].id}`);
-        console.log(`📊 Created record: user_id=${verification[0].userId}, date=${verification[0].date}, start_time=${verification[0].startTime}, end_time=${verification[0].endTime}, is_auto_generated=${verification[0].isAutoGenerated}`);
+        console.log(`📊 Created record (${registerNumber === 1 ? '1er' : '2º'} registro): user_id=${verification[0].userId}, date=${verification[0].date}, start_time=${verification[0].startTime}, end_time=${verification[0].endTime}, is_auto_generated=${verification[0].isAutoGenerated}`);
         return verification[0];
       } else {
-        console.error(`❌ Work log insertion claimed success but verification failed for user ${settings.userId}`);
+        console.error(`❌ Work log insertion claimed success but verification failed for user ${settings.userId} (${registerNumber === 1 ? '1er' : '2º'} registro)`);
         return null;
       }
     } catch (error) {
-      console.error(`❌ Error inserting work log for user ${settings.userId}:`, error);
+      console.error(`❌ Error inserting work log for user ${settings.userId} (${registerNumber === 1 ? '1er' : '2º'} registro):`, error);
       throw error;
     }
   }
