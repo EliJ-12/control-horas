@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAutoTimeSettings, useSaveAutoTimeSettings } from "@/hooks/use-auto-time-settings";
+import { useAutoTimeSettings2, useSaveAutoTimeSettings2 } from "@/hooks/use-auto-time-settings-2";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Clock, Settings, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-export default function AutoTimeSettings() {
-  console.log('AutoTimeSettings component rendering...');
+export default function AutoTimeSettings2() {
+  console.log('AutoTimeSettings2 component rendering...');
   const { user } = useAuth();
-  const { data: settings, isLoading, error } = useAutoTimeSettings();
-  const saveSettings = useSaveAutoTimeSettings();
+  const { data: settings, isLoading, error } = useAutoTimeSettings2();
+  const saveSettings = useSaveAutoTimeSettings2();
   
   const [formData, setFormData] = useState({
     enabled: false,
@@ -108,7 +108,7 @@ export default function AutoTimeSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Registro Automático de Horas (Configuración 1)
+            Registro Automático de Horas (Configuración 2)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -127,7 +127,7 @@ export default function AutoTimeSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings className="h-5 w-5" />
-          Registro Automático de Horas (Configuración 1)
+          Registro Automático de Horas (Configuración 2)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -169,12 +169,12 @@ export default function AutoTimeSettings() {
                 {weekDays.map((day) => (
                   <div key={day.key} className="flex items-center space-x-2">
                     <Switch
-                      id={day.key}
+                      id={`${day.key}-2`}
                       checked={formData[day.key] as boolean}
                       onCheckedChange={() => handleDayToggle(day.key)}
                       disabled={!!error}
                     />
-                    <Label htmlFor={day.key} className="text-sm">
+                    <Label htmlFor={`${day.key}-2`} className="text-sm">
                       {day.label}
                     </Label>
                   </div>
@@ -184,9 +184,9 @@ export default function AutoTimeSettings() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startTime">Hora de inicio</Label>
+                <Label htmlFor="startTime-2">Hora de inicio</Label>
                 <Input
-                  id="startTime"
+                  id="startTime-2"
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
@@ -195,9 +195,9 @@ export default function AutoTimeSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="endTime">Hora de fin</Label>
+                <Label htmlFor="endTime-2">Hora de fin</Label>
                 <Input
-                  id="endTime"
+                  id="endTime-2"
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
@@ -206,9 +206,9 @@ export default function AutoTimeSettings() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="autoRegisterTime">Hora de registro automático</Label>
+                <Label htmlFor="autoRegisterTime-2">Hora de registro automático</Label>
                 <Input
-                  id="autoRegisterTime"
+                  id="autoRegisterTime-2"
                   type="time"
                   value={formData.autoRegisterTime}
                   onChange={(e) => setFormData(prev => ({ ...prev, autoRegisterTime: e.target.value }))}
@@ -223,10 +223,12 @@ export default function AutoTimeSettings() {
                 <div className="text-sm text-blue-800">
                   <p className="font-medium mb-1">¿Cómo funciona?</p>
                   <p>
-                    El sistema creará automáticamente un registro de horas cada día seleccionado 
-                    a la hora especificada. Por ejemplo, si configuras lunes a viernes de 9:00 a 14:00 
-                    con registro automático a las 14:05, el sistema creará un registro diario 
-                    de lunes a viernes a las 14:05 con esas horas.
+                    Esta es una segunda configuración independiente. Puedes configurar días y horarios 
+                    diferentes a la primera configuración. Por ejemplo, puedes configurar esta segunda 
+                    configuración para los días que no cubre la primera configuración.
+                  </p>
+                  <p className="mt-2">
+                    Ejemplo: Configuración 1 para Lunes y Jueves, Configuración 2 para Viernes.
                   </p>
                   <p className="mt-2">
                     Los registros creados automáticamente pueden ser modificados si necesitas 

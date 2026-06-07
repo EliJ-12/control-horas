@@ -1,7 +1,7 @@
--- CORRECCIÓN FINAL: Recrear función execute_auto_time_scheduler con tipos correctos y sin duplicados
+-- CORRECCIÓN FINAL: Recrear función execute_auto_time_scheduler para procesar ambas configuraciones
 DROP FUNCTION IF EXISTS execute_auto_time_scheduler();
 
--- Eliminar constraint único antiguo y crear uno nuevo que permita hasta 2 registros por día
+-- Eliminar constraint único antiguo para permitir múltiples registros por día
 DO $$
 BEGIN
     IF EXISTS (
@@ -11,7 +11,7 @@ BEGIN
         ALTER TABLE work_logs DROP CONSTRAINT unique_user_date_auto;
     END IF;
     
-    -- No creamos constraint único ya que permitimos hasta 2 registros por día
+    -- No creamos constraint único ya que permitimos múltiples registros por día
     -- La lógica del scheduler controla que no haya más de 2 registros
 END $$;
 
@@ -36,7 +36,7 @@ BEGIN
     RAISE NOTICE 'pg_cron: Ejecutando scheduler - Hora España: %, Fecha: %, Día semana: %',
         spain_time_str, spain_date, spain_dow;
 
-    -- Insertar PRIMER registro automático
+    -- Insertar registros automáticos desde CONFIGURACIÓN 1
     INSERT INTO work_logs (
         user_id, date, start_time, end_time, total_hours, type, is_auto_generated, created_at, updated_at
     )
@@ -65,7 +65,7 @@ BEGIN
         WHEN 6 THEN ats.saturday
         ELSE false
     END = true
-    -- Verificar hora exacta para primer registro
+    -- Verificar hora exacta
     AND TO_CHAR(ats.auto_register_time, 'HH24:MI') = spain_time_str
     -- Solo si no existe registro para hoy (verificación manual)
     AND NOT EXISTS (
@@ -74,47 +74,43 @@ BEGIN
         AND wl.date = spain_date
     );
 
-    -- Insertar SEGUNDO registro automático (si está configurado)
+    -- Insertar registros automáticos desde CONFIGURACIÓN 2
     INSERT INTO work_logs (
         user_id, date, start_time, end_time, total_hours, type, is_auto_generated, created_at, updated_at
     )
     SELECT DISTINCT
-        ats.user_id,
+        ats2.user_id,
         spain_date,
-        ats.start_time_2,
-        ats.end_time_2,
-        EXTRACT(EPOCH FROM (ats.end_time_2::time - ats.start_time_2::time)) / 60, -- minutos
+        ats2.start_time,
+        ats2.end_time,
+        EXTRACT(EPOCH FROM (ats2.end_time::time - ats2.start_time::time)) / 60, -- minutos
         'work',
         true,
         NOW(),
         NOW()
-    FROM auto_time_settings ats
-    JOIN users u ON ats.user_id = u.id
-    WHERE ats.enabled = true
+    FROM auto_time_settings_2 ats2
+    JOIN users u ON ats2.user_id = u.id
+    WHERE ats2.enabled = true
     AND u.role = 'employee'
-    -- Verificar que el segundo registro esté configurado
-    AND ats.start_time_2 IS NOT NULL
-    AND ats.end_time_2 IS NOT NULL
-    AND ats.auto_register_time_2 IS NOT NULL
     -- Verificar día de la semana
     AND CASE spain_dow
-        WHEN 0 THEN ats.sunday
-        WHEN 1 THEN ats.monday
-        WHEN 2 THEN ats.tuesday
-        WHEN 3 THEN ats.wednesday
-        WHEN 4 THEN ats.thursday
-        WHEN 5 THEN ats.friday
-        WHEN 6 THEN ats.saturday
+        WHEN 0 THEN ats2.sunday
+        WHEN 1 THEN ats2.monday
+        WHEN 2 THEN ats2.tuesday
+        WHEN 3 THEN ats2.wednesday
+        WHEN 4 THEN ats2.thursday
+        WHEN 5 THEN ats2.friday
+        WHEN 6 THEN ats2.saturday
         ELSE false
     END = true
-    -- Verificar hora exacta para segundo registro
-    AND TO_CHAR(ats.auto_register_time_2, 'HH24:MI') = spain_time_str
-    -- Solo si hay menos de 2 registros para hoy (verificación manual)
-    AND (
-        SELECT COUNT(*) FROM work_logs wl
-        WHERE wl.user_id = ats.user_id
+    -- Verificar hora exacta
+    AND TO_CHAR(ats2.auto_register_time, 'HH24:MI') = spain_time_str
+    -- Solo si no existe registro para hoy (verificación manual)
+    AND NOT EXISTS (
+        SELECT 1 FROM work_logs wl
+        WHERE wl.user_id = ats2.user_id
         AND wl.date = spain_date
-    ) < 2;
+    );
 
     GET DIAGNOSTICS records_created = ROW_COUNT;
 

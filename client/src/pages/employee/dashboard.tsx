@@ -3,6 +3,7 @@ import { useWorkLogs, useCreateWorkLog } from "@/hooks/use-work-logs";
 import { useAbsences } from "@/hooks/use-absences";
 import Layout from "@/components/layout";
 import AutoTimeSettings from "@/components/auto-time-settings";
+import AutoTimeSettings2 from "@/components/auto-time-settings-2";
 import { Clock, Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -237,6 +238,7 @@ export default function EmployeeDashboard() {
         </Card>
 
         <AutoTimeSettings />
+        <AutoTimeSettings2 />
       </div>
     </Layout>
   );

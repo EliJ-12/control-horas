@@ -6,8 +6,8 @@ import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
 import { eq, and, desc, sql, ilike, gte, lte } from "drizzle-orm";
 import { 
-  users, workLogs, absences, autoTimeSettings, 
-  insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema 
+  users, workLogs, absences, autoTimeSettings, autoTimeSettings2,
+  insertUserSchema, insertWorkLogSchema, insertAbsenceSchema, insertAutoTimeSettingsSchema, insertAutoTimeSettings2Schema 
 } from "../shared/schema.js";
 import { forceCreateTestRecord } from "./scheduler.js";
 import { createClient } from '@supabase/supabase-js';
@@ -464,6 +464,99 @@ export async function registerRoutes(
     })
     .from(autoTimeSettings)
     .leftJoin(users, eq(autoTimeSettings.userId, users.id));
+
+    res.json(settings);
+  });
+
+  // === AUTO TIME SETTINGS 2 ROUTES ===
+
+  // Get auto time settings 2 for current user
+  app.get("/api/auto-time-settings-2", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = (req.user as any).id;
+    const settings = await db.select()
+      .from(autoTimeSettings2)
+      .where(eq(autoTimeSettings2.userId, userId))
+      .limit(1);
+
+    res.json(settings[0] || null);
+  });
+
+  // Create or update auto time settings 2 for current user
+  app.post("/api/auto-time-settings-2", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    try {
+      const userId = (req.user as any).id;
+      const validatedData = insertAutoTimeSettings2Schema.parse({
+        ...req.body,
+        userId
+      });
+
+      // Check if settings already exist for this user
+      const existing = await db.select()
+        .from(autoTimeSettings2)
+        .where(eq(autoTimeSettings2.userId, userId))
+        .limit(1);
+
+      let result;
+      if (existing.length > 0) {
+        // Update existing settings
+        result = await db.update(autoTimeSettings2)
+          .set({
+            ...validatedData,
+            updatedAt: new Date()
+          })
+          .where(eq(autoTimeSettings2.userId, userId))
+          .returning();
+      } else {
+        // Create new settings
+        result = await db.insert(autoTimeSettings2)
+          .values(validatedData)
+          .returning();
+      }
+
+      res.json(result[0]);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("Error saving auto time settings 2:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get all auto time settings 2 (admin only)
+  app.get("/api/admin/auto-time-settings-2", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== 'admin') {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const settings = await db.select({
+      id: autoTimeSettings2.id,
+      userId: autoTimeSettings2.userId,
+      enabled: autoTimeSettings2.enabled,
+      monday: autoTimeSettings2.monday,
+      tuesday: autoTimeSettings2.tuesday,
+      wednesday: autoTimeSettings2.wednesday,
+      thursday: autoTimeSettings2.thursday,
+      friday: autoTimeSettings2.friday,
+      saturday: autoTimeSettings2.saturday,
+      sunday: autoTimeSettings2.sunday,
+      startTime: autoTimeSettings2.startTime,
+      endTime: autoTimeSettings2.endTime,
+      autoRegisterTime: autoTimeSettings2.autoRegisterTime,
+      createdAt: autoTimeSettings2.createdAt,
+      updatedAt: autoTimeSettings2.updatedAt,
+      userFullName: users.fullName
+    })
+    .from(autoTimeSettings2)
+    .leftJoin(users, eq(autoTimeSettings2.userId, users.id));
 
     res.json(settings);
   });

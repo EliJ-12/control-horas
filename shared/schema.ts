@@ -50,12 +50,27 @@ export const autoTimeSettings = pgTable("auto_time_settings", {
   friday: boolean("friday").default(false),
   saturday: boolean("saturday").default(false),
   sunday: boolean("sunday").default(false),
-  startTime: text("start_time").notNull(), // HH:mm format - Primer registro
-  endTime: text("end_time").notNull(), // HH:mm format - Primer registro
-  autoRegisterTime: text("auto_register_time").notNull(), // HH:mm format when to auto-create the first record
-  startTime2: text("start_time_2"), // HH:mm format - Segundo registro
-  endTime2: text("end_time_2"), // HH:mm format - Segundo registro
-  autoRegisterTime2: text("auto_register_time_2"), // HH:mm format when to auto-create the second record
+  startTime: text("start_time").notNull(), // HH:mm format
+  endTime: text("end_time").notNull(), // HH:mm format
+  autoRegisterTime: text("auto_register_time").notNull(), // HH:mm format when to auto-create the record
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const autoTimeSettings2 = pgTable("auto_time_settings_2", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  enabled: boolean("enabled").default(false),
+  monday: boolean("monday").default(false),
+  tuesday: boolean("tuesday").default(false),
+  wednesday: boolean("wednesday").default(false),
+  thursday: boolean("thursday").default(false),
+  friday: boolean("friday").default(false),
+  saturday: boolean("saturday").default(false),
+  sunday: boolean("sunday").default(false),
+  startTime: text("start_time").notNull(), // HH:mm format
+  endTime: text("end_time").notNull(), // HH:mm format
+  autoRegisterTime: text("auto_register_time").notNull(), // HH:mm format when to auto-create the record
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -65,6 +80,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   workLogs: many(workLogs),
   absences: many(absences),
   autoTimeSettings: many(autoTimeSettings),
+  autoTimeSettings2: many(autoTimeSettings2),
 }));
 
 export const workLogsRelations = relations(workLogs, ({ one }) => ({
@@ -88,11 +104,19 @@ export const autoTimeSettingsRelations = relations(autoTimeSettings, ({ one }) =
   }),
 }));
 
+export const autoTimeSettings2Relations = relations(autoTimeSettings2, ({ one }) => ({
+  user: one(users, {
+    fields: [autoTimeSettings2.userId],
+    references: [users.id],
+  }),
+}));
+
 // === BASE SCHEMAS ===
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertWorkLogSchema = createInsertSchema(workLogs).omit({ id: true, createdAt: true });
 export const insertAbsenceSchema = createInsertSchema(absences).omit({ id: true, createdAt: true });
 export const insertAutoTimeSettingsSchema = createInsertSchema(autoTimeSettings).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAutoTimeSettings2Schema = createInsertSchema(autoTimeSettings2).omit({ id: true, createdAt: true, updatedAt: true });
 
 // === TYPES ===
 export type User = typeof users.$inferSelect;
@@ -103,14 +127,18 @@ export type Absence = typeof absences.$inferSelect;
 export type InsertAbsence = z.infer<typeof insertAbsenceSchema>;
 export type AutoTimeSettings = typeof autoTimeSettings.$inferSelect;
 export type InsertAutoTimeSettings = z.infer<typeof insertAutoTimeSettingsSchema>;
+export type AutoTimeSettings2 = typeof autoTimeSettings2.$inferSelect;
+export type InsertAutoTimeSettings2 = z.infer<typeof insertAutoTimeSettings2Schema>;
 
 // Request types
 export type CreateUserRequest = InsertUser;
 export type CreateWorkLogRequest = InsertWorkLog;
 export type CreateAbsenceRequest = InsertAbsence;
 export type CreateAutoTimeSettingsRequest = InsertAutoTimeSettings;
+export type CreateAutoTimeSettings2Request = InsertAutoTimeSettings2;
 
 // API Response types (for complex queries)
 export type WorkLogWithUser = WorkLog & { user: User };
 export type AbsenceWithUser = Absence & { user: User };
 export type AutoTimeSettingsWithUser = AutoTimeSettings & { user: User };
+export type AutoTimeSettings2WithUser = AutoTimeSettings2 & { user: User };
